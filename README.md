@@ -52,7 +52,7 @@ Wed May 27 09:17:59 EDT 2020
 I recommend storing your personal logs in `$HOME/log/runner`. Accomplish this by setting the `RUNNER_LOG_DIR` environment variable at the top of your crontab:
 
 ```
-RUNNER_LOG_DIR="/home/myusername/log/runner"
+RUNNER_LOG_DIR=/home/myusername/log/runner
 ```
 
 `runner` will create this folder for you if it doesn’t already exist.
