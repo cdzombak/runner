@@ -136,12 +136,12 @@ func main() {
 		}
 	}
 
-	output := fmt.Sprintf("%s running %s\nCommand: %s\nExit code: %d\nWorking directory: %s\n\nDuration: %s\nStart time: %s\nEnd time: %s\n\n",
+	output := fmt.Sprintf("%s running %s\nWorking directory: %s\nCommand: %s\nExit code: %d\n\nDuration: %s\nStart time: %s\nEnd time: %s\n\n",
 		statusStr,
 		*jobName,
+		*workDir,
 		cmd.String(),
 		exitCode,
-		*workDir,
 		duration.String(),
 		startTime.Format("2006-01-02 15:04:05.000 -0700"),
 		endTime.Format("2006-01-02 15:04:05.000 -0700"),
