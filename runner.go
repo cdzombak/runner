@@ -173,7 +173,10 @@ func main() {
 			log.Fatalf("Failed to create log directory %s: %s", *logDir, err)
 		}
 
-		fname := fmt.Sprintf("%s.%s.log", *jobName, startTime.Format("2006-01-02T15-04-05.000-0700"))
+		fname := fmt.Sprintf("%s.%s.log",
+			removeBadFilenameChars(*jobName),
+			startTime.Format("2006-01-02T15-04-05.000-0700"),
+		)
 		logfile := filepath.Join(*logDir, fname)
 		err = writeToFile(logfile, output)
 		if err != nil {
@@ -194,4 +197,12 @@ func writeToFile(filename string, data string) error {
 		return err
 	}
 	return file.Sync()
+}
+
+func removeBadFilenameChars(filename string) string {
+	badChars := []string{"/", "\\", "?", "%", "*", ":", "|", "\"", "'", "<", ">", ".", " "}
+	for _, v := range badChars {
+		filename = strings.ReplaceAll(filename, v, "-")
+	}
+	return filename
 }
