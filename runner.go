@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+var version = "undefined"
+
 // Based on https://lawlessguy.wordpress.com/2013/07/23/filling-a-slice-using-command-line-flags-in-go-golang/ & https://stackoverflow.com/questions/28322997/how-to-get-a-list-of-values-into-a-flag-in-golang
 
 type intslice []int
@@ -48,6 +50,7 @@ func usage() {
 	fmt.Printf("Run the given program, only printing output to stdout/stderr if the program exits with an error.\n\n")
 	fmt.Printf("Options:\n")
 	flag.PrintDefaults()
+	fmt.Printf("\nVersion:\n  runner version %s\n", version)
 	fmt.Printf("\nIssues:\n  https://github.com/cdzombak/runner/issues/new\n")
 	fmt.Printf("\nAuthor: Chris Dzombak <https://www.dzombak.com>\n")
 }
@@ -63,8 +66,15 @@ func main() {
 	hideEnv := flag.Bool("hide-env", false, "Hide the process's environment, which is normally printed & logged as part of the output.")
 	logDir := flag.String("log-dir", "", "The directory to write run logs to. Can also be set by the RUNNER_LOG_DIR environment variable; this flag overrides the environment variable.")
 	workDir := flag.String("work-dir", "", "Set the working directory for the program.")
+	printVersion := flag.Bool("version", false, "Print version and exit.")
 	flag.Usage = usage
 	flag.Parse()
+
+	if *printVersion {
+		fmt.Println(version)
+		os.Exit(0)
+	}
+
 	programName := flag.Arg(0)
 	var programArgs []string
 	if len(flag.Args()) > 1 {

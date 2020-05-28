@@ -1,5 +1,7 @@
 SHELL:=/usr/bin/env bash
+VERSION:=$(shell [ -z "$$(git tag)" ] && echo "$$(git describe --always --long --dirty)" || echo "$$(git tag | sed 's/^v//')")
 GO_FILES:=$(shell find . -name '*.go' | grep -v /vendor/)
+BIN_NAME:=runner
 
 default: help
 
@@ -25,18 +27,18 @@ lint: ## Lint all .go files
 .PHONY: build
 build: lint ## Build (for the current platform & architecture) to ./out
 	mkdir -p out
-	go build -o ./out/ .
+	go build -ldflags="-X main.version=${VERSION}" -o ./out/${OUT} .
 
 .PHONY: build-linux-amd64
-build-linux-amd64:
+build-linux-amd64: ## Build for Linux/amd64 to ./out
 	mkdir -p out/linux-amd64
-	env GOOS=linux GOARCH=amd64 go build -o ./out/linux-amd64/ .
+	env GOOS=linux GOARCH=amd64 go build -ldflags="-X main.version=${VERSION}" -o ./out/linux-amd64/${OUT} .
 
 .PHONY: build-darwin-amd64
-build-darwin-amd64:
+build-darwin-amd64: ## Build for macOS (Darwin) / amd64 to ./out
 	mkdir -p out/darwin-amd64
-	env GOOS=darwin GOARCH=amd64 go build -o ./out/darwin-amd64/ .
+	env GOOS=darwin GOARCH=amd64 go build -ldflags="-X main.version=${VERSION}" -o ./out/darwin-amd64/${OUT} .
 
 .PHONY: install
-	go build -o /usr/local/bin .
 install: lint ## Build & install runner to /usr/local/bin
+	go build -o /usr/local/bin/${OUT} .
