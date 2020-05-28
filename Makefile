@@ -1,4 +1,5 @@
 SHELL:=/usr/bin/env bash
+GO_FILES:=$(shell find . -name '*.go' | grep -v /vendor/)
 
 default: help
 
@@ -14,8 +15,15 @@ all: clean build build-linux-amd64 build-darwin-amd64 ## Build for macOS and Lin
 clean: ## Remove built products in ./out
 	rm -rf ./out
 
+.PHONY: lint
+lint: ## Lint all .go files
+	@for file in ${GO_FILES} ;  do \
+		echo "$$file" ; \
+		golint $$file ; \
+	done
+
 .PHONY: build
-build: ## Build (for the current platform & architecture) to ./out
+build: lint ## Build (for the current platform & architecture) to ./out
 	mkdir -p out
 	go build -o ./out/ .
 
@@ -30,5 +38,5 @@ build-darwin-amd64:
 	env GOOS=darwin GOARCH=amd64 go build -o ./out/darwin-amd64/ .
 
 .PHONY: install
-install: ## Build & install runner to /usr/local/bin
 	go build -o /usr/local/bin .
+install: lint ## Build & install runner to /usr/local/bin
