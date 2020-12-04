@@ -1,6 +1,6 @@
-# `runner`
+# `runner`: a lightweight wrapper for cron jobs
 
-Runs a program, capturing its output and only printing it if the program fails.
+`runner` runs a program, capturing its output and printing it only if the program fails.
 
 Output can also be printed if the program produces, or does not produce, a specific string; and output is optionally written to a log directory regardless of program exit status.
 
@@ -49,7 +49,7 @@ Wed May 27 09:17:59 EDT 2020
 
 ## Log Storage
 
-I recommend storing your personal logs in `$HOME/log/runner`. Accomplish this by setting the `RUNNER_LOG_DIR` environment variable at the top of your crontab:
+I store my personal logs in `$HOME/log/runner`. Accomplish this by setting the `RUNNER_LOG_DIR` environment variable at the top of your crontab:
 
 ```
 RUNNER_LOG_DIR=/home/myusername/log/runner
