@@ -41,4 +41,4 @@ build-darwin-amd64: ## Build for macOS (Darwin) / amd64 to ./out
 
 .PHONY: install
 install: lint ## Build & install runner to /usr/local/bin
-	go build -o /usr/local/bin/${OUT} .
+	go build -ldflags="-X main.version=${VERSION}" -o /usr/local/bin/${BIN_NAME} .
