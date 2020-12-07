@@ -27,17 +27,17 @@ lint: ## Lint all .go files
 .PHONY: build
 build: lint ## Build (for the current platform & architecture) to ./out
 	mkdir -p out
-	go build -ldflags="-X main.version=${VERSION}" -o ./out/${OUT} .
+	go build -ldflags="-X main.version=${VERSION}" -o ./out/${BIN_NAME} .
 
 .PHONY: build-linux-amd64
 build-linux-amd64: ## Build for Linux/amd64 to ./out
 	mkdir -p out/linux-amd64
-	env GOOS=linux GOARCH=amd64 go build -ldflags="-X main.version=${VERSION}" -o ./out/linux-amd64/${OUT} .
+	env GOOS=linux GOARCH=amd64 go build -ldflags="-X main.version=${VERSION}" -o ./out/linux-amd64/${BIN_NAME} .
 
 .PHONY: build-darwin-amd64
 build-darwin-amd64: ## Build for macOS (Darwin) / amd64 to ./out
 	mkdir -p out/darwin-amd64
-	env GOOS=darwin GOARCH=amd64 go build -ldflags="-X main.version=${VERSION}" -o ./out/darwin-amd64/${OUT} .
+	env GOOS=darwin GOARCH=amd64 go build -ldflags="-X main.version=${VERSION}" -o ./out/darwin-amd64/${BIN_NAME} .
 
 .PHONY: install
 install: lint ## Build & install runner to /usr/local/bin
