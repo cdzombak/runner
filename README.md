@@ -28,6 +28,7 @@ This is particularly useful when running a program via cron, when you only want 
 - `-log-dir string`: The directory to write run logs to. Can also be set by the `RUNNER_LOG_DIR` environment variable; this flag overrides the environment variable.
 - `-print-if-match string`: Print output if the given (case-sensitive) string appears in the program’s output, even if it was a healthy exit. May be specified multiple times.
 - `-print-if-not-match string`: Print output if the given (case-sensitive) string does not appear in the program’s output, even if it was a healthy exit. May be specified multiple times.
+- `-retries int`: If the program fails, retry it this many times.
 - `-work-dir string`: Set the working directory for the program. Optional.
 
 ### Sample Output

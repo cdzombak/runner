@@ -66,6 +66,7 @@ func main() {
 	hideEnv := flag.Bool("hide-env", false, "Hide the process's environment, which is normally printed & logged as part of the output.")
 	logDir := flag.String("log-dir", "", "The directory to write run logs to. Can also be set by the RUNNER_LOG_DIR environment variable; this flag overrides the environment variable.")
 	workDir := flag.String("work-dir", "", "Set the working directory for the program.")
+	retries := flag.Int("retries", 0, "If the command fails, retry it this many times.")
 	printVersion := flag.Bool("version", false, "Print version and exit.")
 	flag.Usage = usage
 	flag.Parse()
@@ -92,69 +93,87 @@ func main() {
 		healthyExitCodes = []int{0}
 	}
 
-	cmd := exec.Command(programName, programArgs...)
-	cmd.Dir = *workDir
-	startTime := time.Now()
-	cmdOut, err := cmd.CombinedOutput()
-	endTime := time.Now()
+	triesRemaining := 1 + *retries
+	programOutput := ""
+	var startTime, endTime time.Time
 
-	if err != nil {
-		var exitError *exec.ExitError
-		if errors.As(err, &exitError) {
-			err = nil
-		} else {
-			log.Fatalf("Failed to run %s: %s", cmd.String(), err)
+	statusStr := "Failed"
+	shouldPrint := true
+	exitCode := -1
+
+	for triesRemaining > 0 {
+		if *retries > 0 && triesRemaining != 1 + *retries {
+			programOutput = programOutput + "\n- Retrying -\n\n"
+		}
+		triesRemaining--
+
+		startTime = time.Now()
+		cmd := exec.Command(programName, programArgs...)
+		endTime = time.Now()
+		cmd.Dir = *workDir
+		cmdOut, err := cmd.CombinedOutput()
+
+		if err != nil {
+			var exitError *exec.ExitError
+			if errors.As(err, &exitError) {
+				err = nil
+			} else {
+				log.Fatalf("Failed to run %s: %s", cmd.String(), err)
+			}
+		}
+		if cmd.ProcessState == nil {
+			panic("cmd.ProcessState should not be nil after running")
+		}
+
+		exitCode = cmd.ProcessState.ExitCode()
+		cmdOutStr := string(cmdOut)
+		programOutput = programOutput + cmdOutStr
+
+		for _, v := range healthyExitCodes {
+			if exitCode == v {
+				statusStr = "Succeeded"
+				shouldPrint = false
+				triesRemaining = 0
+			}
+		}
+		if !shouldPrint {
+			for _, v := range printIfMatch {
+				if strings.Contains(cmdOutStr, v) {
+					shouldPrint = true
+					break
+				}
+			}
+		}
+		if !shouldPrint {
+			for _, v := range printIfNotMatch {
+				if !strings.Contains(cmdOutStr, v) {
+					shouldPrint = true
+					break
+				}
+			}
 		}
 	}
-	if cmd.ProcessState == nil {
-		panic("cmd.ProcessState should not be nil after running")
-	}
 
-	exitCode := cmd.ProcessState.ExitCode()
-	cmdOutStr := string(cmdOut)
 	duration := endTime.Sub(startTime)
 
-	statusStr := "Failure"
-	shouldPrint := true
-	for _, v := range healthyExitCodes {
-		if exitCode == v {
-			statusStr = "Success"
-			shouldPrint = false
-		}
-	}
-	if !shouldPrint {
-		for _, v := range printIfMatch {
-			if strings.Contains(cmdOutStr, v) {
-				shouldPrint = true
-				break
-			}
-		}
-	}
-	if !shouldPrint {
-		for _, v := range printIfNotMatch {
-			if !strings.Contains(cmdOutStr, v) {
-				shouldPrint = true
-				break
-			}
-		}
-	}
-
 	if *workDir == "" {
+		var err error
 		*workDir, err = os.Getwd()
 		if err != nil {
 			panic("failed to get working directory")
 		}
 	}
 
-	output := fmt.Sprintf("%s running %s\nWorking directory: %s\nCommand: %s\nExit code: %d\n\nDuration: %s\nStart time: %s\nEnd time: %s\n\n",
+	output := fmt.Sprintf("%s running %s\nWorking directory: %s\nCommand: %s\nExit code: %d\n\nDuration: %s\nStart time: %s\nEnd time: %s\nRetries allowed: %d\n\n",
 		statusStr,
 		*jobName,
 		*workDir,
-		cmd.String(),
+		exec.Command(programName, programArgs...).String(),
 		exitCode,
 		duration.String(),
 		startTime.Format("2006-01-02 15:04:05.000 -0700"),
 		endTime.Format("2006-01-02 15:04:05.000 -0700"),
+		*retries,
 	)
 	if !*hideEnv {
 		output = output + "Environment:\n"
@@ -164,10 +183,10 @@ func main() {
 		output = output + "\n"
 	}
 	output = output + "--- Program output follows: ---\n\n"
-	if len(cmdOut) == 0 {
+	if len(programOutput) == 0 {
 		output = output + "(no output produced)\n"
 	} else {
-		output = output + cmdOutStr + "\n"
+		output = output + programOutput + "\n"
 	}
 
 	if shouldPrint {
@@ -178,7 +197,7 @@ func main() {
 		*logDir = os.Getenv("RUNNER_LOG_DIR")
 	}
 	if *logDir != "" {
-		err = os.MkdirAll(*logDir, os.ModePerm)
+		err := os.MkdirAll(*logDir, os.ModePerm)
 		if err != nil {
 			log.Fatalf("Failed to create log directory %s: %s", *logDir, err)
 		}
