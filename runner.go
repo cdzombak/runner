@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-var version = "undefined"
+var version = "<dev>"
 
 // Based on https://lawlessguy.wordpress.com/2013/07/23/filling-a-slice-using-command-line-flags-in-go-golang/ & https://stackoverflow.com/questions/28322997/how-to-get-a-list-of-values-into-a-flag-in-golang
 
