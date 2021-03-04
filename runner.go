@@ -109,9 +109,9 @@ func main() {
 
 		startTime = time.Now()
 		cmd := exec.Command(programName, programArgs...)
-		endTime = time.Now()
 		cmd.Dir = *workDir
 		cmdOut, err := cmd.CombinedOutput()
+		endTime = time.Now()
 
 		if err != nil {
 			var exitError *exec.ExitError
