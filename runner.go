@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/smtp"
 	"os"
 	"os/exec"
 	"os/user"
@@ -31,6 +32,11 @@ func usage() {
 }
 
 func main() {
+	hostname, err := os.Hostname()
+	if err != nil {
+		panic(err)
+	}
+
 	var healthyExitCodes IntSlice
 	flag.Var(&healthyExitCodes, "healthy-exit", "\"Healthy\" or \"success\" exit codes. May be specified multiple times to provide more than one success exit code. (default: 0)")
 	var printIfMatch StringSlice
@@ -45,6 +51,13 @@ func main() {
 	asUser := flag.String("user", "", "Run the program as the given user. (If provided, runner must be run as root or with CAP_SETUID and CAP_SETGID.)")
 	asUID := flag.Int("uid", -1, "Run the program as the given UID. (If provided, runner must be run as root or with CAP_SETUID.)")
 	asGID := flag.Int("gid", -1, "Run the program as the given GID. (If provided, runner must be run as root or with CAP_SETUID.)")
+	mailTo := flag.String("mailto", "", "Send an email to the given address if the program fails or its output would otherwise be printer pet -print-if-[not]-match. Can also be set by the MAILTO environment variable; this flag overrides the environment variable.")
+	mailFrom := flag.String("mail-from", "runner@"+hostname, "The email address to use as the From: address in failure emails.")
+	smtpUser := flag.String("smtp-user", "", "Username for SMTP authentication.")
+	smtpPass := flag.String("smtp-pass", "", "Password for SMTP authentication.")
+	smtpHost := flag.String("smtp-host", "", "SMTP server hostname.")
+	smtpPort := flag.Int("smtp-port", 25, "SMTP server port.")
+	mailTabCharReplacement := flag.String("mail-tab-char", "", "Replace tab characters in emailed output by this string. (Can also be set by the RUNNER_MAIL_TAB_CHAR environment variable; this flag overrides the environment variable.)")
 	printVersion := flag.Bool("version", false, "Print version and exit.")
 	flag.Usage = usage
 	flag.Parse()
@@ -102,7 +115,20 @@ func main() {
 		}
 		log.Printf("Program will run as UID %d, GID %d", sysProcAttr.Credential.Uid, sysProcAttr.Credential.Gid)
 	}
+
+	mailOutput := false
+	if *mailTo == "" {
+		*mailTo = os.Getenv("MAILTO")
+	}
+	if *mailTo != "" && strings.Contains(*mailTo, "@") {
+		if *smtpUser != "" || *smtpPass != "" || *smtpHost != "" {
+			mailOutput = true
+		} else {
+			log.Println("If using -mailto (or the MAILTO env var), you must also specify -smtp-user, -smtp-pass, and -smtp-host.")
 		}
+	}
+	if *mailTabCharReplacement == "" {
+		*mailTabCharReplacement = os.Getenv("RUNNER_MAIL_TAB_CHAR")
 	}
 
 	triesRemaining := 1 + *retries
@@ -179,7 +205,8 @@ func main() {
 		}
 	}
 
-	output := fmt.Sprintf("%s running %s\nWorking directory: %s\nCommand: %s\nExit code: %d\n\nDuration: %s\nStart time: %s\nEnd time: %s\nRetries allowed: %d\n\n",
+	output := fmt.Sprintf("[%s] %s running %s\nWorking directory: %s\nCommand: %s\nExit code: %d\n\nDuration: %s\nStart time: %s\nEnd time: %s\nRetries allowed: %d\n\n",
+		hostname,
 		statusStr,
 		*jobName,
 		*workDir,
@@ -206,6 +233,32 @@ func main() {
 
 	if shouldPrint {
 		fmt.Printf(output)
+
+		if mailOutput {
+			body := strings.ReplaceAll(output, "\n", "\r\n")
+			if *mailTabCharReplacement != "" {
+				body = strings.ReplaceAll(body, "\t", *mailTabCharReplacement)
+			}
+
+			msg := []byte(fmt.Sprintf(
+				"From: %s\r\n"+
+					"To: %s\r\n"+
+					"Subject: %s\r\n"+
+					"X-Mailer: %s\r\n\r\n"+
+					"%s\r\n",
+				*mailFrom, *mailTo,
+				fmt.Sprintf("[%s] %s running %s", hostname, statusStr, *jobName),
+				"runner "+version,
+				body,
+			))
+			smtpAddr := fmt.Sprintf("%s:%d", *smtpHost, *smtpPort)
+			auth := smtp.PlainAuth("", *smtpUser, *smtpPass, *smtpHost)
+			err = smtp.SendMail(smtpAddr, auth, *mailFrom, []string{*mailTo}, msg)
+
+			if err != nil {
+				log.Printf("Failed to send email to %s: %s", *mailTo, err)
+			}
+		}
 	}
 
 	if *logDir == "" {
