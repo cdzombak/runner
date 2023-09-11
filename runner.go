@@ -21,13 +21,14 @@ var version = "<dev>"
 
 func usage() {
 	fmt.Printf("Usage: %s [OPTIONS] -- /path/to/program --program-args\n", filepath.Base(os.Args[0]))
-	fmt.Printf("Run the given program, only printing output to stdout/stderr if the program exits with an error.\n")
+	fmt.Printf("Run the given program, only printing its output if the program exits with an error, " +
+		"or if the output contains (or does not contain) certain substrings.\n")
 	fmt.Printf("Optionally, all output is logged to a user-configurable directory.\n")
-	fmt.Printf("If run as root or with CAP_SETUID and CAP_SETGID, the program can be run as a different user.\n")
+	fmt.Printf("\nIf run as root or with CAP_SETUID and CAP_SETGID, the program can be run as a different user.\n")
 	fmt.Printf("\nOptions:\n")
 	flag.PrintDefaults()
-	fmt.Printf("\nVersion:\n  runner version %s\n", version)
-	fmt.Printf("\nIssues:\n  https://github.com/cdzombak/runner/issues/new\n")
+	fmt.Printf("\nVersion:\n  runner %s\n", version)
+	fmt.Printf("\nGitHub:\n  https://github.com/cdzombak/runner\n")
 	fmt.Printf("\nAuthor: Chris Dzombak <https://www.dzombak.com>\n")
 }
 
@@ -39,14 +40,18 @@ func main() {
 	}
 
 	var healthyExitCodes IntSlice
-	flag.Var(&healthyExitCodes, "healthy-exit", "\"Healthy\" or \"success\" exit codes. May be specified multiple times to provide more than one success exit code. (default: 0)")
+	flag.Var(&healthyExitCodes, "healthy-exit", "\"Healthy\" or \"success\" exit codes. "+
+		"May be specified multiple times to provide more than one success exit code. (default: 0)")
 	var printIfMatch StringSlice
 	var printIfNotMatch StringSlice
-	flag.Var(&printIfMatch, "print-if-match", "Print/mail output if the given (case-sensitive) string appears in the program's output, even if it was a healthy exit. May be specified multiple times.")
-	flag.Var(&printIfNotMatch, "print-if-not-match", "Print/mail output if the given (case-sensitive) string does not appear in the program's output, even if it was a healthy exit. May be specified multiple times.")
+	flag.Var(&printIfMatch, "print-if-match", "Print/mail output if the given (case-sensitive) string appears in the program's output, even if it was a healthy exit. "+
+		"May be specified multiple times.")
+	flag.Var(&printIfNotMatch, "print-if-not-match", "Print/mail output if the given (case-sensitive) string does not appear in the program's output, even if it was a healthy exit. "+
+		"May be specified multiple times.")
 	jobName := flag.String("job-name", "", "Job name used in failure notifications and log file name. (default: program name, without path)")
 	hideEnv := flag.Bool("hide-env", false, "Hide the process's environment, which is normally printed & logged as part of the output.")
-	logDir := flag.String("log-dir", "", "The directory to write run logs to. Can also be set by the RUNNER_LOG_DIR environment variable; this flag overrides the environment variable.")
+	logDir := flag.String("log-dir", "", "The directory to write run logs to. "+
+		"Can also be set by the RUNNER_LOG_DIR environment variable; this flag overrides the environment variable.")
 	workDir := flag.String("work-dir", "", "Set the working directory for the program.")
 	retries := flag.Int("retries", 0, "If the command fails, retry it this many times.")
 	asUser := flag.String("user", "", "Run the program as the given user. Ignored on Windows. "+
@@ -55,12 +60,15 @@ func main() {
 		"(If provided, runner must be run as root or with CAP_SETUID.)")
 	asGID := flag.Int("gid", -1, "Run the program as the given GID. Ignored on Windows. "+
 		"(If provided, runner must be run as root or with CAP_SETUID.)")
+	mailTo := flag.String("mailto", "", "Send an email to the given address if the program fails or its output would otherwise be printed per -healthy-exit and -print-if-[not]-match. "+
+		"Can also be set by the MAILTO environment variable; this flag overrides the environment variable.")
 	mailFrom := flag.String("mail-from", "runner@"+hostname, "The email address to use as the From: address in failure emails.")
 	smtpUser := flag.String("smtp-user", "", "Username for SMTP authentication.")
 	smtpPass := flag.String("smtp-pass", "", "Password for SMTP authentication.")
 	smtpHost := flag.String("smtp-host", "", "SMTP server hostname.")
 	smtpPort := flag.Int("smtp-port", 25, "SMTP server port.")
-	mailTabCharReplacement := flag.String("mail-tab-char", "", "Replace tab characters in emailed output by this string. (Can also be set by the RUNNER_MAIL_TAB_CHAR environment variable; this flag overrides the environment variable.)")
+	mailTabCharReplacement := flag.String("mail-tab-char", "", "Replace tab characters in emailed output by this string. "+
+		"Can also be set by the RUNNER_MAIL_TAB_CHAR environment variable; this flag overrides the environment variable.")
 	printVersion := flag.Bool("version", false, "Print version and exit.")
 	flag.Usage = usage
 	flag.Parse()
