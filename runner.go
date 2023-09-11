@@ -25,6 +25,9 @@ func usage() {
 		"or if the output contains (or does not contain) certain substrings.\n")
 	fmt.Printf("Optionally, all output is logged to a user-configurable directory.\n")
 	fmt.Printf("\nIf run as root or with CAP_SETUID and CAP_SETGID, the program can be run as a different user.\n")
+	fmt.Printf("Linux 5.6+ only: If run with CAP_SYS_PTRACE and the RUNNER_OUTFD_PID and one or both of the RUNNER_OUTFD_STD[OUT|ERR] " +
+		"environment variables, all output will be redirected to those file descriptors on RUNNER_OUTFD_PID. This can be useful in some" +
+		"container situations. The container must be run with --cap-add CAP_SYS_PTRACE.\n")
 	fmt.Printf("\nOptions:\n")
 	flag.PrintDefaults()
 	fmt.Printf("\nVersion:\n  runner %s\n", version)
@@ -33,6 +36,8 @@ func usage() {
 }
 
 func main() {
+	implementOutputFdRedirect()
+
 	hostname, err := os.Hostname()
 	if err != nil {
 		hostname = "<unknown hostname>"
