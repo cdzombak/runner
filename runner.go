@@ -9,41 +9,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 )
 
 var version = "<dev>"
-
-// Based on https://lawlessguy.wordpress.com/2013/07/23/filling-a-slice-using-command-line-flags-in-go-golang/ & https://stackoverflow.com/questions/28322997/how-to-get-a-list-of-values-into-a-flag-in-golang
-
-type intslice []int
-
-func (i *intslice) String() string {
-	return fmt.Sprintf("%d", *i)
-}
-
-func (i *intslice) Set(value string) error {
-	tmp, err := strconv.Atoi(value)
-	if err != nil {
-		*i = append(*i, -1)
-	} else {
-		*i = append(*i, tmp)
-	}
-	return nil
-}
-
-type strslice []string
-
-func (i *strslice) String() string {
-	return "my string representation"
-}
-
-func (i *strslice) Set(value string) error {
-	*i = append(*i, value)
-	return nil
-}
 
 func usage() {
 	fmt.Printf("Usage: %s [OPTIONS] -- /path/to/program --program-args\n", filepath.Base(os.Args[0]))
@@ -56,12 +26,12 @@ func usage() {
 }
 
 func main() {
-	var healthyExitCodes intslice
+	var healthyExitCodes IntSlice
 	flag.Var(&healthyExitCodes, "healthy-exit", "\"Healthy\" or \"success\" exit codes. May be specified multiple times to provide more than one success exit code. (default: 0)")
-	var printIfMatch strslice
-	var printIfNotMatch strslice
-	flag.Var(&printIfMatch, "print-if-match", "Print output if the given (case-sensitive) string appears in the program's output, even if it was a healthy exit. May be specified multiple times.")
-	flag.Var(&printIfNotMatch, "print-if-not-match", "Print output if the given (case-sensitive) string does not appear in the program's output, even if it was a healthy exit. May be specified multiple times.")
+	var printIfMatch StringSlice
+	var printIfNotMatch StringSlice
+	flag.Var(&printIfMatch, "print-if-match", "Print/mail output if the given (case-sensitive) string appears in the program's output, even if it was a healthy exit. May be specified multiple times.")
+	flag.Var(&printIfNotMatch, "print-if-not-match", "Print/mail output if the given (case-sensitive) string does not appear in the program's output, even if it was a healthy exit. May be specified multiple times.")
 	jobName := flag.String("job-name", "", "Job name used in failure notifications and log file name. (default: program name, without path)")
 	hideEnv := flag.Bool("hide-env", false, "Hide the process's environment, which is normally printed & logged as part of the output.")
 	logDir := flag.String("log-dir", "", "The directory to write run logs to. Can also be set by the RUNNER_LOG_DIR environment variable; this flag overrides the environment variable.")
