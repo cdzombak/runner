@@ -34,6 +34,9 @@ const (
 	OutFdStderrEnvVar = "RUNNER_OUTFD_STDERR"
 
 	LogDirEnvVar = "RUNNER_LOG_DIR"
+
+	HideEnvVarsEnvVar   = "RUNNER_HIDE_ENV"
+	CensorEnvVarsEnvVar = "RUNNER_CENSOR_ENV"
 )
 
 func usage() {
@@ -47,6 +50,10 @@ func usage() {
 		"containerization situations. The container must be run with --cap-add CAP_SYS_PTRACE.\n", OutFdPidEnvVar)
 	fmt.Printf("\nOptions:\n")
 	flag.PrintDefaults()
+	fmt.Printf("\nEnvironment variable-only options:\n")
+	fmt.Printf("  %s\n    \tColon-separated list of environment variables whose values will be censored in output."+
+		"\n    \tRUNNER_SMTP_PASS is always censored.\n", CensorEnvVarsEnvVar)
+	fmt.Printf("  %s\n    \tColon-separated list of environment variables which will be entirely omitted from output.\n", HideEnvVarsEnvVar)
 	fmt.Printf("\nVersion:\n  runner %s\n", version)
 	fmt.Printf("\nGitHub:\n  https://github.com/cdzombak/runner\n")
 	fmt.Printf("\nAuthor:\n  Chris Dzombak <https://www.dzombak.com>\n")
@@ -289,8 +296,13 @@ func main() {
 	)
 	if !*hideEnv {
 		output = output + "Environment:\n"
-		for _, v := range os.Environ() {
-			output = output + fmt.Sprintf("\t%s\n", v)
+		for _, envVar := range os.Environ() {
+			envVarPair := strings.SplitN(envVar, "=", 2)
+			envVarName := envVarPair[0]
+			if shouldHideEnvVar(envVarName) {
+				continue
+			}
+			output = output + fmt.Sprintf("\t%s=%s\n", envVarName, censoredEnvVarValue(envVarName, envVarPair[1]))
 		}
 		output = output + "\n"
 	}

@@ -58,6 +58,9 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
 - `-version`: Print version and exit.
 - `-work-dir string`: Set the working directory for the program.
 
+- `RUNNER_CENSOR_ENV` (environment variable only): Colon-separated list of environment variables whose values will be censored in output.
+- `RUNNER_HIDE_ENV` (environment variable only): Colon-separated list of environment variables which will be entirely omitted from output.
+
 #### Run as another user
  
 - `-gid int`: Run the program as the given GID. Ignored on Windows. (If provided, runner must be run as `root` or with `CAP_SETGID`.)
