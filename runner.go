@@ -80,7 +80,7 @@ func main() {
 	asUID := flag.Int("uid", -1, "Run the program as the given UID. Ignored on Windows. "+
 		"(If provided, runner must be run as root or with CAP_SETUID.)")
 	asGID := flag.Int("gid", -1, "Run the program as the given GID. Ignored on Windows. "+
-		"(If provided, runner must be run as root or with CAP_SETUID.)")
+		"(If provided, runner must be run as root or with CAP_SETGID.)")
 	mailTo := flag.String("mailto", "", "Send an email to the given address if the program fails or its output would otherwise be printed per -healthy-exit and -print-if-[not]-match. "+
 		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", MailToEnvVar))
 	mailFrom := flag.String("mail-from", "", "The email address to use as the From: address in failure emails. (default:runner@hostname)"+
