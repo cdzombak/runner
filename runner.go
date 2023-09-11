@@ -19,15 +19,31 @@ import (
 
 var version = "<dev>"
 
+const (
+	MailToEnvVar      = "MAILTO"
+	MailFromEnvVar    = "RUNNER_MAIL_FROM"
+	SmtpUserEnvVar    = "RUNNER_SMTP_USER"
+	SmtpPassEnvVar    = "RUNNER_SMTP_PASS"
+	SmtpHostEnvVar    = "RUNNER_SMTP_HOST"
+	SmtpPortEnvVar    = "RUNNER_SMTP_PORT"
+	MailTabCharEnvVar = "RUNNER_MAIL_TAB_CHAR"
+
+	OutFdPidEnvVar    = "RUNNER_OUTFD_PID"
+	OutFdStdoutEnvVar = "RUNNER_OUTFD_STDOUT"
+	OutFdStderrEnvVar = "RUNNER_OUTFD_STDERR"
+
+	LogDirEnvVar = "RUNNER_LOG_DIR"
+)
+
 func usage() {
 	fmt.Printf("Usage: %s [OPTIONS] -- /path/to/program --program-args\n", filepath.Base(os.Args[0]))
 	fmt.Printf("Run the given program, only printing its output if the program exits with an error, " +
 		"or if the output contains (or does not contain) certain substrings.\n")
 	fmt.Printf("Optionally, all output is logged to a user-configurable directory.\n")
 	fmt.Printf("\nIf run as root or with CAP_SETUID and CAP_SETGID, the program can be run as a different user.\n")
-	fmt.Printf("Linux 5.6+ only: If run with CAP_SYS_PTRACE and the RUNNER_OUTFD_PID and one or both of the RUNNER_OUTFD_STD[OUT|ERR] " +
-		"environment variables, all output will be redirected to those file descriptors on RUNNER_OUTFD_PID. This can be useful in some" +
-		"container situations. The container must be run with --cap-add CAP_SYS_PTRACE.\n")
+	fmt.Printf("Linux 5.6+ only: If run with CAP_SYS_PTRACE and the environment variables (%s and one or both of RUNNER_OUTFD_STD[OUT|ERR]), "+
+		"all output will be redirected to those file descriptors on RUNNER_OUTFD_PID. This can be useful in some"+
+		"container situations. The container must be run with --cap-add CAP_SYS_PTRACE.\n", OutFdPidEnvVar)
 	fmt.Printf("\nOptions:\n")
 	flag.PrintDefaults()
 	fmt.Printf("\nVersion:\n  runner %s\n", version)
@@ -56,7 +72,7 @@ func main() {
 	jobName := flag.String("job-name", "", "Job name used in failure notifications and log file name. (default: program name, without path)")
 	hideEnv := flag.Bool("hide-env", false, "Hide the process's environment, which is normally printed & logged as part of the output.")
 	logDir := flag.String("log-dir", "", "The directory to write run logs to. "+
-		"Can also be set by the RUNNER_LOG_DIR environment variable; this flag overrides the environment variable.")
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", LogDirEnvVar))
 	workDir := flag.String("work-dir", "", "Set the working directory for the program.")
 	retries := flag.Int("retries", 0, "If the command fails, retry it this many times.")
 	asUser := flag.String("user", "", "Run the program as the given user. Ignored on Windows. "+
@@ -66,14 +82,19 @@ func main() {
 	asGID := flag.Int("gid", -1, "Run the program as the given GID. Ignored on Windows. "+
 		"(If provided, runner must be run as root or with CAP_SETUID.)")
 	mailTo := flag.String("mailto", "", "Send an email to the given address if the program fails or its output would otherwise be printed per -healthy-exit and -print-if-[not]-match. "+
-		"Can also be set by the MAILTO environment variable; this flag overrides the environment variable.")
-	mailFrom := flag.String("mail-from", "runner@"+hostname, "The email address to use as the From: address in failure emails.")
-	smtpUser := flag.String("smtp-user", "", "Username for SMTP authentication.")
-	smtpPass := flag.String("smtp-pass", "", "Password for SMTP authentication.")
-	smtpHost := flag.String("smtp-host", "", "SMTP server hostname.")
-	smtpPort := flag.Int("smtp-port", 25, "SMTP server port.")
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", MailToEnvVar))
+	mailFrom := flag.String("mail-from", "", "The email address to use as the From: address in failure emails. (default:runner@hostname)"+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", MailFromEnvVar))
+	smtpUser := flag.String("smtp-user", "", "Username for SMTP authentication."+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", SmtpUserEnvVar))
+	smtpPass := flag.String("smtp-pass", "", "Password for SMTP authentication."+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", SmtpPassEnvVar))
+	smtpHost := flag.String("smtp-host", "", "SMTP server hostname."+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", SmtpHostEnvVar))
+	smtpPort := flag.Int("smtp-port", 0, "SMTP server port. (default: 25)"+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", SmtpPortEnvVar))
 	mailTabCharReplacement := flag.String("mail-tab-char", "", "Replace tab characters in emailed output by this string. "+
-		"Can also be set by the RUNNER_MAIL_TAB_CHAR environment variable; this flag overrides the environment variable.")
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", MailTabCharEnvVar))
 	printVersion := flag.Bool("version", false, "Print version and exit.")
 	flag.Usage = usage
 	flag.Parse()
@@ -137,17 +158,45 @@ func main() {
 
 	mailOutput := false
 	if *mailTo == "" {
-		*mailTo = os.Getenv("MAILTO")
+		*mailTo = os.Getenv(MailToEnvVar)
+	}
+	if *mailFrom == "" {
+		*mailFrom = os.Getenv(MailFromEnvVar)
+	}
+	if *mailFrom == "" {
+		*mailFrom = "runner@" + hostname
+	}
+	if *smtpUser == "" {
+		*smtpUser = os.Getenv(SmtpUserEnvVar)
+	}
+	if *smtpPass == "" {
+		*smtpPass = os.Getenv(SmtpPassEnvVar)
+	}
+	if *smtpHost == "" {
+		*smtpHost = os.Getenv(SmtpHostEnvVar)
+	}
+	if *smtpPort == 0 {
+		smtpPortStr := os.Getenv(SmtpPortEnvVar)
+		if smtpPortStr != "" {
+			*smtpPort, err = strconv.Atoi(smtpPortStr)
+			if err != nil {
+				log.Fatalf("Failed to parse %s ('%s') as integer: %s", SmtpPortEnvVar, smtpPortStr, err)
+			}
+		}
+	}
+	if *smtpPort == 0 {
+		*smtpPort = 25
 	}
 	if *mailTo != "" && strings.Contains(*mailTo, "@") {
 		if *smtpUser != "" || *smtpPass != "" || *smtpHost != "" {
 			mailOutput = true
 		} else {
-			log.Println("If using -mailto (or the MAILTO env var), you must also specify -smtp-user, -smtp-pass, and -smtp-host.")
+			log.Printf("If using -mailto (or the %s env var), you must also specify -smtp-user (%s), -smtp-pass (%s), -smtp-host (%s).",
+				MailToEnvVar, SmtpUserEnvVar, SmtpPassEnvVar, SmtpHostEnvVar)
 		}
 	}
 	if *mailTabCharReplacement == "" {
-		*mailTabCharReplacement = os.Getenv("RUNNER_MAIL_TAB_CHAR")
+		*mailTabCharReplacement = os.Getenv(MailTabCharEnvVar)
 	}
 
 	triesRemaining := 1 + *retries
@@ -281,7 +330,7 @@ func main() {
 	}
 
 	if *logDir == "" {
-		*logDir = os.Getenv("RUNNER_LOG_DIR")
+		*logDir = os.Getenv(LogDirEnvVar)
 	}
 	if *logDir != "" {
 		err := os.MkdirAll(*logDir, os.ModePerm)
