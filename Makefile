@@ -25,7 +25,7 @@ lint: ## Lint all .go files
 	done
 
 .PHONY: build
-build: lint ## Build for the current platform & architecture to ./out
+build: ## Build for the current platform & architecture to ./out
 	mkdir -p out
 	go build -ldflags="-X main.version=${VERSION}" -o ./out/${BIN_NAME} .
 
