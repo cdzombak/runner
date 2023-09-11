@@ -72,7 +72,7 @@ func main() {
 	exitCode := -1
 
 	for triesRemaining > 0 {
-		if *retries > 0 && triesRemaining != 1 + *retries {
+		if *retries > 0 && triesRemaining != 1+*retries {
 			programOutput = programOutput + "\n- Retrying -\n\n"
 		}
 		triesRemaining--
