@@ -69,6 +69,7 @@ func main() {
 		"May be specified multiple times.")
 	flag.Var(&printIfNotMatch, "print-if-not-match", "Print/mail output if the given (case-sensitive) string does not appear in the program's output, even if it was a healthy exit. "+
 		"May be specified multiple times.")
+	alwaysPrint := flag.Bool("always-print", false, "Always print the program's output, sidestepping exit code and -print-if[-not]-match checks.")
 	jobName := flag.String("job-name", "", "Job name used in failure notifications and log file name. (default: program name, without path)")
 	hideEnv := flag.Bool("hide-env", false, "Hide the process's environment, which is normally printed & logged as part of the output.")
 	logDir := flag.String("log-dir", "", "The directory to write run logs to. "+
@@ -241,7 +242,7 @@ func main() {
 		for _, v := range healthyExitCodes {
 			if exitCode == v {
 				statusStr = "Succeeded"
-				shouldPrint = false
+				shouldPrint = *alwaysPrint
 				triesRemaining = 0
 			}
 		}
