@@ -34,7 +34,8 @@ func usage() {
 func main() {
 	hostname, err := os.Hostname()
 	if err != nil {
-		panic(err)
+		hostname = "<unknown hostname>"
+		log.Printf("Failed to get hostname: %s", err)
 	}
 
 	var healthyExitCodes IntSlice
