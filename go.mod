@@ -1,5 +1,5 @@
 module runner
 
-go 1.21.0
+go 1.15
 
 require github.com/oraoto/go-pidfd v0.1.1 // indirect
