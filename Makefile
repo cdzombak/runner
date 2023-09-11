@@ -31,20 +31,16 @@ build: lint ## Build for the current platform & architecture to ./out
 
 .PHONY: build-linux-amd64
 build-linux-amd64: ## Build for Linux/amd64 to ./out
-	mkdir -p out/linux-amd64
-	env GOOS=linux GOARCH=amd64 go build -ldflags="-X main.version=${VERSION}" -o ./out/linux-amd64/${BIN_NAME} .
+	env GOOS=linux GOARCH=amd64 go build -ldflags="-X main.version=${VERSION}" -o ./out/${BIN_NAME}-linux-amd64 .
 
 .PHONY: build-linux-arm64
 build-linux-arm64: ## Build for Linux/arm64 to ./out
-	mkdir -p out/linux-arm64
-	env GOOS=linux GOARCH=arm64 go build -ldflags="-X main.version=${VERSION}" -o ./out/linux-arm64/${BIN_NAME} .
+	env GOOS=linux GOARCH=arm64 go build -ldflags="-X main.version=${VERSION}" -o ./out/${BIN_NAME}-linux-arm64 .
 
 .PHONY: build-darwin-amd64
 build-darwin-amd64: ## Build for macOS/amd64 to ./out
-	mkdir -p out/darwin-amd64
-	env GOOS=darwin GOARCH=amd64 go build -ldflags="-X main.version=${VERSION}" -o ./out/darwin-amd64/${BIN_NAME} .
+	env GOOS=darwin GOARCH=amd64 go build -ldflags="-X main.version=${VERSION}" -o ./out/${BIN_NAME}-darwin-amd64 .
 
 .PHONY: build-darwin-arm64
 build-darwin-arm64: ## Build for macOS/arm64 to ./out
-	mkdir -p out/darwin-arm64
-	env GOOS=darwin GOARCH=arm64 go build -ldflags="-X main.version=${VERSION}" -o ./out/darwin-arm64/${BIN_NAME} .
+	env GOOS=darwin GOARCH=arm64 go build -ldflags="-X main.version=${VERSION}" -o ./out/${BIN_NAME}-darwin-arm64 .
