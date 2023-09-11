@@ -17,8 +17,9 @@ var version = "<dev>"
 
 func usage() {
 	fmt.Printf("Usage: %s [OPTIONS] -- /path/to/program --program-args\n", filepath.Base(os.Args[0]))
-	fmt.Printf("Run the given program, only printing output to stdout/stderr if the program exits with an error.\n\n")
-	fmt.Printf("Options:\n")
+	fmt.Printf("Run the given program, only printing output to stdout/stderr if the program exits with an error.\n")
+	fmt.Printf("Optionally, all output is logged to a user-configurable directory.\n")
+	fmt.Printf("\nOptions:\n")
 	flag.PrintDefaults()
 	fmt.Printf("\nVersion:\n  runner version %s\n", version)
 	fmt.Printf("\nIssues:\n  https://github.com/cdzombak/runner/issues/new\n")
