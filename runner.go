@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -47,10 +48,12 @@ func main() {
 	logDir := flag.String("log-dir", "", "The directory to write run logs to. Can also be set by the RUNNER_LOG_DIR environment variable; this flag overrides the environment variable.")
 	workDir := flag.String("work-dir", "", "Set the working directory for the program.")
 	retries := flag.Int("retries", 0, "If the command fails, retry it this many times.")
-	asUser := flag.String("user", "", "Run the program as the given user. (If provided, runner must be run as root or with CAP_SETUID and CAP_SETGID.)")
-	asUID := flag.Int("uid", -1, "Run the program as the given UID. (If provided, runner must be run as root or with CAP_SETUID.)")
-	asGID := flag.Int("gid", -1, "Run the program as the given GID. (If provided, runner must be run as root or with CAP_SETUID.)")
-	mailTo := flag.String("mailto", "", "Send an email to the given address if the program fails or its output would otherwise be printer pet -print-if-[not]-match. Can also be set by the MAILTO environment variable; this flag overrides the environment variable.")
+	asUser := flag.String("user", "", "Run the program as the given user. Ignored on Windows. "+
+		"(If provided, runner must be run as root or with CAP_SETUID and CAP_SETGID.)")
+	asUID := flag.Int("uid", -1, "Run the program as the given UID. Ignored on Windows. "+
+		"(If provided, runner must be run as root or with CAP_SETUID.)")
+	asGID := flag.Int("gid", -1, "Run the program as the given GID. Ignored on Windows. "+
+		"(If provided, runner must be run as root or with CAP_SETUID.)")
 	mailFrom := flag.String("mail-from", "runner@"+hostname, "The email address to use as the From: address in failure emails.")
 	smtpUser := flag.String("smtp-user", "", "Username for SMTP authentication.")
 	smtpPass := flag.String("smtp-pass", "", "Password for SMTP authentication.")
@@ -83,36 +86,39 @@ func main() {
 		healthyExitCodes = []int{0}
 	}
 
-	if *asUser != "" && (*asUID != -1 || *asGID != -1) {
-		log.Fatalf("Cannot specify both -user and -uid/-gid")
-	}
-	if *asUser != "" {
-		u, err := user.Lookup(*asUser)
-		if err != nil {
-			log.Fatalf("Failed to lookup user %s: %s", *asUser, err)
-		}
-		uid, err := strconv.ParseInt(u.Uid, 10, 32)
-		if err != nil {
-			log.Fatalf("Failed to parse UID %s as integer: %s", u.Uid, err)
-		}
-		gid, err := strconv.ParseInt(u.Gid, 10, 32)
-		if err != nil {
-			log.Fatalf("Failed to parse UID %s as integer: %s", u.Uid, err)
-		}
-		*asUID = int(uid)
-		*asGID = int(gid)
-	}
 	var sysProcAttr *syscall.SysProcAttr = nil
-	if *asUID != -1 || *asGID != -1 {
-		sysProcAttr = &syscall.SysProcAttr{}
-		sysProcAttr.Credential = &syscall.Credential{}
-		if *asUID != -1 {
-			sysProcAttr.Credential.Uid = uint32(*asUID)
+	//goland:noinspection GoBoolExpressions
+	if runtime.GOOS != "windows" {
+		if *asUser != "" && (*asUID != -1 || *asGID != -1) {
+			log.Fatalf("Cannot specify both -user and -uid/-gid")
 		}
-		if *asGID != -1 {
-			sysProcAttr.Credential.Gid = uint32(*asGID)
+		if *asUser != "" {
+			u, err := user.Lookup(*asUser)
+			if err != nil {
+				log.Fatalf("Failed to lookup user %s: %s", *asUser, err)
+			}
+			uid, err := strconv.ParseInt(u.Uid, 10, 32)
+			if err != nil {
+				log.Fatalf("Failed to parse UID %s as integer: %s", u.Uid, err)
+			}
+			gid, err := strconv.ParseInt(u.Gid, 10, 32)
+			if err != nil {
+				log.Fatalf("Failed to parse UID %s as integer: %s", u.Uid, err)
+			}
+			*asUID = int(uid)
+			*asGID = int(gid)
 		}
-		log.Printf("Program will run as UID %d, GID %d", sysProcAttr.Credential.Uid, sysProcAttr.Credential.Gid)
+		if *asUID != -1 || *asGID != -1 {
+			sysProcAttr = &syscall.SysProcAttr{}
+			sysProcAttr.Credential = &syscall.Credential{}
+			if *asUID != -1 {
+				sysProcAttr.Credential.Uid = uint32(*asUID)
+			}
+			if *asGID != -1 {
+				sysProcAttr.Credential.Gid = uint32(*asGID)
+			}
+			log.Printf("Program will run as UID %d, GID %d", sysProcAttr.Credential.Uid, sysProcAttr.Credential.Gid)
+		}
 	}
 
 	mailOutput := false
