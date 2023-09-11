@@ -172,11 +172,11 @@ func main() {
 			log.Fatalf("Failed to create log directory %s: %s", *logDir, err)
 		}
 
-		fname := fmt.Sprintf("%s.%s.log",
+		logfilename := fmt.Sprintf("%s.%s.log",
 			removeBadFilenameChars(*jobName),
 			startTime.Format("2006-01-02T15-04-05.000-0700"),
 		)
-		logfile := filepath.Join(*logDir, fname)
+		logfile := filepath.Join(*logDir, logfilename)
 		err = writeToFile(logfile, output)
 		if err != nil {
 			log.Fatalf("Failed to write to log file %s: %s", logfile, err)
