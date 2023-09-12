@@ -350,7 +350,7 @@ func main() {
 	}
 	if *logDir != "" {
 		if _, err := os.Stat(*logDir); os.IsNotExist(err) {
-			err = os.MkdirAll(*logDir, os.ModePerm)
+			err = os.MkdirAll(*logDir, 0770)
 			if err != nil {
 				log.Fatalf("Failed to create log directory '%s': %s", *logDir, err)
 			}
@@ -367,7 +367,7 @@ func main() {
 			startTime.Format("2006-01-02T15-04-05.000-0700"),
 		)
 		logFile := filepath.Join(*logDir, logFileName)
-		err = writeToFile(logFile, output)
+		err = writeLogFile(logFile, output)
 		if err != nil {
 			log.Fatalf("Failed to write to log file '%s': %s", logFile, err)
 		}

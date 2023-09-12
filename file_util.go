@@ -6,18 +6,15 @@ import (
 	"strings"
 )
 
-func writeToFile(filename string, data string) error {
-	file, err := os.Create(filename)
+func writeLogFile(filename, data string) error {
+	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0660)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
 	_, err = io.WriteString(file, data)
-	if err != nil {
-		return err
-	}
-	return file.Sync()
+	return err
 }
 
 func removeBadFilenameChars(filename string) string {
