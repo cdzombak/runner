@@ -59,6 +59,8 @@ func usage() {
 	fmt.Printf("\nAuthor:\n  Chris Dzombak <https://www.dzombak.com>\n")
 }
 
+// TODO(cdzombak): logs and dirs must be written as -user
+
 func main() {
 	implementOutputFdRedirect()
 
@@ -347,9 +349,17 @@ func main() {
 		*logDir = os.Getenv(LogDirEnvVar)
 	}
 	if *logDir != "" {
-		err := os.MkdirAll(*logDir, os.ModePerm)
-		if err != nil {
-			log.Fatalf("Failed to create log directory %s: %s", *logDir, err)
+		if _, err := os.Stat(*logDir); os.IsNotExist(err) {
+			err = os.MkdirAll(*logDir, os.ModePerm)
+			if err != nil {
+				log.Fatalf("Failed to create log directory '%s': %s", *logDir, err)
+			}
+			if *asUID != -1 || *asGID != -1 {
+				err = os.Chown(*logDir, *asUID, *asGID)
+				if err != nil {
+					log.Fatalf("Failed to chown log directory '%s' (%d, %d): %s", *logDir, *asUID, *asGID, err)
+				}
+			}
 		}
 
 		logFileName := fmt.Sprintf("%s.%s.log",
@@ -359,7 +369,13 @@ func main() {
 		logFile := filepath.Join(*logDir, logFileName)
 		err = writeToFile(logFile, output)
 		if err != nil {
-			log.Fatalf("Failed to write to log file %s: %s", logFile, err)
+			log.Fatalf("Failed to write to log file '%s': %s", logFile, err)
+		}
+		if *asUID != -1 || *asGID != -1 {
+			err = os.Chown(logFile, *asUID, *asGID)
+			if err != nil {
+				log.Fatalf("Failed to chown log file '%s' (%d, %d): %s", logFile, *asUID, *asGID, err)
+			}
 		}
 	}
 }
