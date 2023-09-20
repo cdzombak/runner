@@ -1,0 +1,217 @@
+---
+name: CI
+
+"on":
+  push:
+    branches:
+      - "main"
+    tags:
+      - "v*.*.*"
+  pull_request:
+    branches:
+      - "main"
+
+permissions:
+  contents: read
+
+env:
+  FPM_VERSION: 1.15.1
+
+jobs:
+
+  meta:
+    name: Derive Build Metadata
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Derive version string
+        id: bin_version
+        run: echo "bin_version=$(./.version.sh)" >> "$GITHUB_OUTPUT"
+      - name: bin_version
+        run: 'echo bin_version: ${{ steps.bin_version.outputs.bin_version }}'
+      - name: Check if this is a running version tag update
+        id: running_version_tag
+        run: |
+          if [[ ${{ github.event.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+$ ]]; then
+              echo "is_running_version_tag_update=true" >> "$GITHUB_OUTPUT"
+          elif [[ ${{ github.event.ref }} =~ ^refs/tags/v[0-9]+$ ]]; then
+              echo "is_running_version_tag_update=true" >> "$GITHUB_OUTPUT"
+          else
+              echo "is_running_version_tag_update=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: is_running_version_tag
+        run: 'echo is_running_version_tag_update: ${{ steps.running_version_tag.outputs.is_running_version_tag_update }}'
+    outputs:
+      # nb. homebrew-releaser assumes the program name is == the repository name
+      bin_name: ${{ github.event.repository.name }}
+      bin_version: ${{ steps.bin_version.outputs.bin_version }}
+      packagecloud_owner: ${{ github.repository_owner }}
+      packagecloud_repo: oss
+      is_prerelease: >-
+            ${{
+              steps.running_version_tag.outputs.is_running_version_tag_update != 'true' &&
+              startsWith(github.ref, 'refs/tags/v') &&
+                (contains(github.ref, '-alpha.')
+                || contains(github.ref, '-beta.')
+                || contains(github.ref, '-rc.'))
+            }}
+      is_release: >-
+            ${{
+              steps.running_version_tag.outputs.is_running_version_tag_update != 'true' &&
+              startsWith(github.ref, 'refs/tags/v') &&
+                !(contains(github.ref, '-alpha.')
+                || contains(github.ref, '-beta.')
+                || contains(github.ref, '-rc.'))
+            }}
+      is_pull_request: ${{ github.event_name == 'pull_request' }}
+      is_running_version_tag_update: ${{ steps.running_version_tag.outputs.is_running_version_tag_update }}
+
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      checks: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run MegaLinter
+        uses: oxsecurity/megalinter@v7
+        env:
+          # See https://megalinter.io/configuration and .mega-linter.yml
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Archive MegaLinter artifacts
+        if: ( !env.ACT && ( success() || failure() ) )
+        uses: actions/upload-artifact@v3
+        with:
+          name: MegaLinter artifacts
+          path: |
+            megalinter-reports
+            mega-linter.log
+
+
+  binaries:
+    name: Build Binaries & Debian Packages
+    needs: [lint, meta]
+    if: needs.meta.outputs.is_running_version_tag_update != 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: stable
+      - name: Go version
+        run: go version
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+      - name: Ruby version
+        run: ruby --version
+      - name: Install fpm
+        run: |
+          gem install --no-document fpm -v "$FPM_VERSION"
+
+      - name: Build binaries & packages
+        run: make package
+      - name: Prepare release artifacts
+        working-directory: out/
+        run: |
+          mkdir ./gh-release
+          cp ./*.deb ./gh-release/
+          find . -name '${{ needs.meta.outputs.bin_name }}-*' -executable -type f -maxdepth 1 -print0 | xargs -0 -I {} tar --transform='flags=r;s|.*|${{ needs.meta.outputs.bin_name }}|' -czvf ./gh-release/{}.tar.gz {}
+      - name: Upload binaries & packages
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ needs.meta.outputs.bin_name }} Binary Artifacts
+          path: out/gh-release/*
+
+
+  release:
+    name: GitHub (Pre)Release
+    needs: [meta, binaries]
+    if: >-
+          needs.meta.outputs.is_release == 'true' ||
+          needs.meta.outputs.is_prerelease == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download binaries & packages
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ needs.meta.outputs.bin_name }} Binary Artifacts
+          path: out
+      - name: List artifacts
+        working-directory: out
+        run: ls -R
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: out/${{ needs.meta.outputs.bin_name }}-*
+          prerelease: ${{ needs.meta.outputs.is_prerelease == 'true' }}
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+
+
+  tags:
+    name: Update Release Tags
+    needs: [meta, release]
+    if: needs.meta.outputs.is_release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Update running major/minor version tags
+        uses: sersoft-gmbh/running-release-tags-action@v3
+        with:
+          fail-on-non-semver-tag: true
+          create-release: false
+          update-full-release: false
+
+
+
+  packagecloud:
+    name: Push to PackageCloud
+    needs: [meta, binaries]
+    if: needs.meta.outputs.is_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Download binaries & packages
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ needs.meta.outputs.bin_name }} Binary Artifacts
+          path: out
+      - name: List artifacts
+        run: ls -R
+        working-directory: out
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+      - name: Ruby version
+        run: ruby --version
+      - name: Install PackageCloud CLI
+        run: |
+          gem install --no-document package_cloud
+
+      - name: Push to PackageCloud
+        env:
+          PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN }}
+        run: |
+          package_cloud push --yes ${{ needs.meta.outputs.packagecloud_owner }}/${{ needs.meta.outputs.packagecloud_repo }}/any/any out/*.deb
