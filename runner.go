@@ -40,23 +40,23 @@ const (
 )
 
 func usage() {
-	fmt.Printf("Usage: %s [OPTIONS] -- /path/to/program --program-args\n", filepath.Base(os.Args[0]))
-	fmt.Printf("Run the given program, only printing its output if the program exits with an error, " +
+	_, _ = fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] -- /path/to/program --program-args\n", filepath.Base(os.Args[0]))
+	_, _ = fmt.Fprintf(os.Stderr, "Run the given program, only printing its output if the program exits with an error, "+
 		"or if the output contains (or does not contain) certain substrings.\n")
-	fmt.Printf("\nOptionally, all output is logged to a user-configurable directory.\n")
-	fmt.Printf("\nIf run as root or with CAP_SETUID and CAP_SETGID, the program can be run as a different user.\n")
-	fmt.Printf("\nLinux 5.6+ only: If run with CAP_SYS_PTRACE and the environment variables (%s and one or both of RUNNER_OUTFD_STD[OUT|ERR]), "+
+	_, _ = fmt.Fprintf(os.Stderr, "\nOptionally, all output is logged to a user-configurable directory.\n")
+	_, _ = fmt.Fprintf(os.Stderr, "\nIf run as root or with CAP_SETUID and CAP_SETGID, the program can be run as a different user.\n")
+	_, _ = fmt.Fprintf(os.Stderr, "\nLinux 5.6+ only: If run with CAP_SYS_PTRACE and the environment variables (%s and one or both of RUNNER_OUTFD_STD[OUT|ERR]), "+
 		"all output will be redirected to those file descriptors on RUNNER_OUTFD_PID. This is useful in some"+
 		"containerization situations. The container must be run with --cap-add CAP_SYS_PTRACE.\n", OutFdPidEnvVar)
-	fmt.Printf("\nOptions:\n")
+	_, _ = fmt.Fprintf(os.Stderr, "\nOptions:\n")
 	flag.PrintDefaults()
-	fmt.Printf("\nEnvironment variable-only options:\n")
-	fmt.Printf("  %s\n    \tColon-separated list of environment variables whose values will be censored in output."+
+	_, _ = fmt.Fprintf(os.Stderr, "\nEnvironment variable-only options:\n")
+	_, _ = fmt.Fprintf(os.Stderr, "  %s\n    \tColon-separated list of environment variables whose values will be censored in output."+
 		"\n    \tRUNNER_SMTP_PASS is always censored.\n", CensorEnvVarsEnvVar)
-	fmt.Printf("  %s\n    \tColon-separated list of environment variables which will be entirely omitted from output.\n", HideEnvVarsEnvVar)
-	fmt.Printf("\nVersion:\n  runner %s\n", version)
-	fmt.Printf("\nGitHub:\n  https://github.com/cdzombak/runner\n")
-	fmt.Printf("\nAuthor:\n  Chris Dzombak <https://www.dzombak.com>\n")
+	_, _ = fmt.Fprintf(os.Stderr, "  %s\n    \tColon-separated list of environment variables which will be entirely omitted from output.\n", HideEnvVarsEnvVar)
+	_, _ = fmt.Fprintf(os.Stderr, "\nVersion:\n  runner %s\n", version)
+	_, _ = fmt.Fprintf(os.Stderr, "\nGitHub:\n  https://github.com/cdzombak/runner\n")
+	_, _ = fmt.Fprintf(os.Stderr, "\nAuthor:\n  Chris Dzombak <https://www.dzombak.com>\n")
 }
 
 // TODO(cdzombak): logs and dirs must be written as -user
