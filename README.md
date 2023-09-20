@@ -131,4 +131,4 @@ This will remove logs older than 30 days.
 
 ## License
 
-GPLv2; see `LICENSE` in this repository.
+LGPLv3; see `LICENSE` in this repository.
