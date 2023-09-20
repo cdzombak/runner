@@ -1,6 +1,6 @@
 -s dir
---name dirshard
---description "Produce sharded path fragments from a filename"
---url "https://github.com/cdzombak/dirshard"
+--name runner
+--description "Lightweight wrapper for better cron jobs"
+--url "https://github.com/cdzombak/runner"
 --maintainer "Chris Dzombak <https://www.dzombak.com>"
 --license LGPL3

@@ -32,9 +32,39 @@ RUNNER_OUTFD_STDERR=2
 
 ## Installation
 
+### Debian via PackageCloud
+
+Install my PackageCloud Debian repository if you haven't already:
+```shell
+curl -s https://packagecloud.io/install/repositories/cdzombak/oss/script.deb.sh?any=true | sudo bash
+```
+
+Then install `runner` via `apt-get`:
+```shell
+sudo apt-get install runner
+```
+
+### Manual installation from build artifacts
+
+Pre-built binaries for Linux and macOS on various architectures are downloadable from each [GitHub Release](https://github.com/cdzombak/runner/releases). Debian packages for each release are available as well. 
+
+### Build and install locally
+
 **Requirements:** Go >= 1.15.
 
-`make build` will build `runner` for your current OS/architecture. Copy the resulting binary from `./out/runner` to wherever makes sense for your deployment, and adjust its owner as necessary.
+`make build` will build `runner` for your current OS/architecture. Copy the resulting binary from `./out/runner` to wherever makes sense for your deployment, and adjust its owner as necessary:
+
+```shell
+git clone https://github.com/cdzombak/runner.git
+cd runner
+make build
+
+cp out/runner $INSTALL_DIR
+sudo chown root:root $INSTALL_DIR/runner
+sudo chmod 755 $INSTALL_DIR/runner
+```
+
+## Post-Installation Steps
 
 If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variables, run `setcap 'CAP_SYS_PTRACE=ep' /path/to/runner` on the `runner` binary.
 
