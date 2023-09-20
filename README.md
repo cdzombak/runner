@@ -24,7 +24,7 @@ The core `runner` logic (capturing and discarding program output) is useful when
 
 It can even run the target program as a non-root user, and if `runner` is not the container's entrypoint, you can set environment variables like the following to redirect output to the root process's stdout/stderr:
 
-```
+```shell
 RUNNER_OUTFD_PID=1
 RUNNER_OUTFD_STDOUT=1
 RUNNER_OUTFD_STDERR=2
@@ -40,7 +40,7 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
 
 ## Usage
 
-```
+```text
 [ENV VARS] runner [OPTIONS] -- /path/to/myprogram --myprogram-args
 ```
 
@@ -86,7 +86,7 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
 
 ### Sample Output
 
-```
+```text
 [myhostname] Success running exampledatejob
 Command: /bin/date
 Exit code: 0
@@ -105,7 +105,7 @@ Wed May 27 09:17:59 EDT 2020
 
 I store my personal logs in `$HOME/log/runner`. Accomplish this by setting the `RUNNER_LOG_DIR` environment variable at the top of your crontab:
 
-```
+```shell
 RUNNER_LOG_DIR=/home/myusername/log/runner
 ```
 
@@ -115,7 +115,7 @@ RUNNER_LOG_DIR=/home/myusername/log/runner
 
 Schedule a cleanup job to run daily via cron:
 
-```
+```text
 RUNNER_LOG_DIR="/home/myusername/log/runner"
 # ...
 0	0	*	*	*	/usr/bin/find "$RUNNER_LOG_DIR" -mtime +30 -name "*.log" -delete

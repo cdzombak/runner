@@ -60,6 +60,7 @@ func usage() {
 }
 
 // TODO(cdzombak): logs and dirs must be written as -user
+// TODO(cdzombak): switch HOME for -user (or uid?)
 
 func main() {
 	implementOutputFdRedirect()
@@ -132,7 +133,7 @@ func main() {
 		healthyExitCodes = []int{0}
 	}
 
-	var sysProcAttr *syscall.SysProcAttr = nil
+	var sysProcAttr *syscall.SysProcAttr
 	//goland:noinspection GoBoolExpressions
 	if runtime.GOOS != "windows" {
 		if *asUser != "" && (*asUID != -1 || *asGID != -1) {
