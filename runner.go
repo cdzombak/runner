@@ -59,9 +59,6 @@ func usage() {
 	_, _ = fmt.Fprintf(os.Stderr, "\nAuthor:\n  Chris Dzombak <https://www.dzombak.com>\n")
 }
 
-// TODO(cdzombak): logs and dirs must be written as -user
-// TODO(cdzombak): switch HOME for -user (or uid?)
-
 func main() {
 	implementOutputFdRedirect()
 
@@ -134,6 +131,7 @@ func main() {
 	}
 
 	var sysProcAttr *syscall.SysProcAttr
+	var userHome string
 	//goland:noinspection GoBoolExpressions
 	if runtime.GOOS != "windows" {
 		if *asUser != "" && (*asUID != -1 || *asGID != -1) {
@@ -164,7 +162,14 @@ func main() {
 			if *asGID != -1 {
 				sysProcAttr.Credential.Gid = uint32(*asGID)
 			}
-			log.Printf("Program will run as UID %d, GID %d", sysProcAttr.Credential.Uid, sysProcAttr.Credential.Gid)
+			log.Printf("[%s] will run as UID %d, GID %d", *jobName, sysProcAttr.Credential.Uid, sysProcAttr.Credential.Gid)
+
+			u, err := user.LookupId(strconv.Itoa(*asUID))
+			if err != nil && u != nil {
+				userHome = u.HomeDir
+			} else {
+				log.Printf("cannot find homedir for UID %d (%s); HOME will not be changed", *asUID, err)
+			}
 		}
 	}
 
@@ -231,6 +236,16 @@ func main() {
 			cmd.SysProcAttr = sysProcAttr
 		}
 		cmd.Dir = *workDir
+		cmd.Env = os.Environ()
+		if userHome != "" {
+			for i, v := range cmd.Env {
+				if strings.HasPrefix(v, "HOME=") {
+					cmd.Env = append(cmd.Env[:i], cmd.Env[i+1:]...)
+					break
+				}
+			}
+			cmd.Env = append(cmd.Env, "HOME="+userHome)
+		}
 		cmdOut, err := cmd.CombinedOutput()
 		endTime = time.Now()
 
