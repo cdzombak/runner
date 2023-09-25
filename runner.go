@@ -130,6 +130,8 @@ func main() {
 		healthyExitCodes = []int{0}
 	}
 
+	var warningLogs []string
+
 	var sysProcAttr *syscall.SysProcAttr
 	var userHome string
 	//goland:noinspection GoBoolExpressions
@@ -162,15 +164,14 @@ func main() {
 			if *asGID != -1 {
 				sysProcAttr.Credential.Gid = uint32(*asGID)
 			}
-			log.Printf("[%s] will run as UID %d, GID %d", *jobName, sysProcAttr.Credential.Uid, sysProcAttr.Credential.Gid)
 
 			u, err := user.LookupId(strconv.Itoa(*asUID))
 			if err != nil && u != nil {
 				userHome = u.HomeDir
 			} else if err != nil {
-				log.Printf("cannot find homedir for UID %d (%s); HOME will not be changed", *asUID, err)
+				warningLogs = append(warningLogs, fmt.Sprintf("cannot find homedir for UID %d (%s); HOME will not be changed", *asUID, err))
 			} else {
-				log.Printf("cannot find homedir for UID %d; HOME will not be changed.", *asUID)
+				warningLogs = append(warningLogs, fmt.Sprintf("cannot find homedir for UID %d; HOME will not be changed", *asUID))
 			}
 		}
 	}
@@ -210,7 +211,7 @@ func main() {
 		if *smtpUser != "" || *smtpPass != "" || *smtpHost != "" {
 			mailOutput = true
 		} else {
-			log.Printf("If using -mailto (or the %s env var), you must also specify -smtp-user (%s), -smtp-pass (%s), -smtp-host (%s).",
+			log.Fatalf("If using -mailto (or the %s env var), you must also specify -smtp-user (%s), -smtp-pass (%s), -smtp-host (%s).",
 				MailToEnvVar, SMTPUserEnvVar, SMTPPassEnvVar, SMTPHostEnvVar)
 		}
 	}
@@ -314,6 +315,15 @@ func main() {
 		endTime.Format("2006-01-02 15:04:05.000 -0700"),
 		*retries,
 	)
+	if *asUser != "" || *asUID != -1 || *asGID != -1 {
+		if *asUser != "" {
+			output = output + fmt.Sprintf("Run as user %s:\n", *asUser)
+		} else {
+			output = output + "Run as:\n"
+		}
+		output = output + fmt.Sprintf("\tUID: %d\n", *asUID)
+		output = output + fmt.Sprintf("\tGID: %d\n\n", *asGID)
+	}
 	if !*hideEnv {
 		output = output + "Environment:\n"
 		for _, envVar := range os.Environ() {
@@ -323,6 +333,13 @@ func main() {
 				continue
 			}
 			output = output + fmt.Sprintf("\t%s=%s\n", envVarName, censoredEnvVarValue(envVarName, envVarPair[1]))
+		}
+		output = output + "\n"
+	}
+	if len(warningLogs) > 0 {
+		output = output + "--- Warnings ---\n\n"
+		for _, warningLog := range warningLogs {
+			output = output + fmt.Sprintf("%s\n", warningLog)
 		}
 		output = output + "\n"
 	}
@@ -358,7 +375,7 @@ func main() {
 			err = smtp.SendMail(smtpAddr, auth, *mailFrom, []string{*mailTo}, msg)
 
 			if err != nil {
-				log.Printf("Failed to send email to %s: %s", *mailTo, err)
+				warningLogs = append(warningLogs, fmt.Sprintf("Failed to send email to %s: %s", *mailTo, err))
 			}
 		}
 	}
