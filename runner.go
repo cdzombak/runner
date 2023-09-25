@@ -167,8 +167,10 @@ func main() {
 			u, err := user.LookupId(strconv.Itoa(*asUID))
 			if err != nil && u != nil {
 				userHome = u.HomeDir
-			} else {
+			} else if err != nil {
 				log.Printf("cannot find homedir for UID %d (%s); HOME will not be changed", *asUID, err)
+			} else {
+				log.Printf("cannot find homedir for UID %d; HOME will not be changed.", *asUID)
 			}
 		}
 	}
