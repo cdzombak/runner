@@ -343,7 +343,7 @@ func main() {
 		}
 		output = output + "\n"
 	}
-	output = output + "--- Program output follows: ---\n\n"
+	output = output + "--- Program output ---\n\n"
 	if len(programOutput) == 0 {
 		output = output + "(no output produced)\n"
 	} else {
