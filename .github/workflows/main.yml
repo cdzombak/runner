@@ -47,8 +47,9 @@ jobs:
       # nb. homebrew-releaser assumes the program name is == the repository name
       bin_name: ${{ github.event.repository.name }}
       bin_version: ${{ steps.bin_version.outputs.bin_version }}
-      packagecloud_owner: ${{ github.repository_owner }}
-      packagecloud_repo: oss
+      aptly_repo_name: oss
+      aptly_dist: any
+      aptly_publish_prefix: s3:dist.cdzombak.net:deb_oss
       is_prerelease: >-
         ${{
           steps.running_version_tag.outputs.is_running_version_tag_update != 'true' &&
