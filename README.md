@@ -32,21 +32,28 @@ RUNNER_OUTFD_STDERR=2
 
 ## Installation
 
-### Debian via PackageCloud
+### Debian via apt repository
 
-Install my PackageCloud Debian repository if you haven't already:
+Install my Debian repository if you haven't already:
+
 ```shell
-curl -s https://packagecloud.io/install/repositories/cdzombak/oss/script.deb.sh?any=true | sudo bash
+sudo apt-get install ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://dist.cdzombak.net/deb.key | sudo gpg --dearmor -o /etc/apt/keyrings/dist-cdzombak-net.gpg
+sudo chmod 0644 /etc/apt/keyrings/dist-cdzombak-net.gpg
+echo -e "deb [signed-by=/etc/apt/keyrings/dist-cdzombak-net.gpg] https://dist.cdzombak.net/deb/oss any oss\n" | sudo tee -a /etc/apt/sources.list.d/dist-cdzombak-net.list > /dev/null
+sudo apt-get update
 ```
 
 Then install `runner` via `apt-get`:
+
 ```shell
 sudo apt-get install runner
 ```
 
 ### Manual installation from build artifacts
 
-Pre-built binaries for Linux and macOS on various architectures are downloadable from each [GitHub Release](https://github.com/cdzombak/runner/releases). Debian packages for each release are available as well. 
+Pre-built binaries for Linux and macOS on various architectures are downloadable from each [GitHub Release](https://github.com/cdzombak/runner/releases). Debian packages for each release are available as well.
 
 ### Build and install locally
 
@@ -81,7 +88,7 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
 - `-hide-env`: Hide the process's environment, which is normally printed & logged as part of the output.
 - `-job-name string`: Job name used in failure notifications and log file name. (default: program name, without path)
 - `-log-dir string`: The directory to write run logs to.
-    - Can also be set by the `RUNNER_LOG_DIR` environment variable; this flag overrides the environment variable.
+  - Can also be set by the `RUNNER_LOG_DIR` environment variable; this flag overrides the environment variable.
 - `-print-if-match value`: Print/mail output if the given (**case-sensitive**) string appears in the program's output, even if it was a healthy exit. May be specified multiple times.
 - `-print-if-not-match value`: Print/mail output if the given (**case-sensitive**) string does not appear in the program's output, even if it was a healthy exit. May be specified multiple times.
 - `-retries int`: If the command fails, retry it this many times.
@@ -92,7 +99,7 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
 - `RUNNER_HIDE_ENV` (environment variable only): Colon-separated list of environment variables which will be entirely omitted from output.
 
 #### Run as another user
- 
+
 - `-gid int`: Run the program as the given GID. Ignored on Windows. (If provided, runner must be run as `root` or with `CAP_SETGID`.)
 - `-uid int`: Run the program as the given UID. Ignored on Windows. (If provided, runner must be run as `root` or with `CAP_SETUID`.)
 - `-user string`: Run the program as the given user. Ignored on Windows. (If provided, runner must be run as `root` or with `CAP_SETUID` and `CAP_SETGID`.)
@@ -100,19 +107,19 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
 #### Email options
 
 - `-mail-from string`: The email address to use as the `From:` address in failure emails. (default: `runner@hostname`)
-    - Can also be set by the `RUNNER_MAIL_FROM` environment variable; this flag overrides the environment variable.
+  - Can also be set by the `RUNNER_MAIL_FROM` environment variable; this flag overrides the environment variable.
 - `-mail-tab-char string`: Replace tab characters in emailed output by this string.
-    - Can also be set by the `RUNNER_MAIL_TAB_CHAR` environment variable; this flag overrides the environment variable.
+  - Can also be set by the `RUNNER_MAIL_TAB_CHAR` environment variable; this flag overrides the environment variable.
 - `-mailto string`: Send an email to the given address if the program fails or its output would otherwise be printed per `-healthy-exit`/`-print-if-[not]-match`/`-always-print`.
-    - Can also be set by the `MAILTO` environment variable; this flag overrides the environment variable.
+  - Can also be set by the `MAILTO` environment variable; this flag overrides the environment variable.
 - `-smtp-host string`: SMTP server hostname.
-    - Can also be set by the `RUNNER_SMTP_HOST` environment variable; this flag overrides the environment variable.
+  - Can also be set by the `RUNNER_SMTP_HOST` environment variable; this flag overrides the environment variable.
 - `-smtp-pass string`: Password for SMTP authentication.
-    - Can also be set by the `RUNNER_SMTP_PASS` environment variable; this flag overrides the environment variable.
+  - Can also be set by the `RUNNER_SMTP_PASS` environment variable; this flag overrides the environment variable.
 - `-smtp-port int`: SMTP server port.
-    - Can also be set by the `RUNNER_SMTP_PORT` environment variable; this flag overrides the environment variable. (default: 25)
+  - Can also be set by the `RUNNER_SMTP_PORT` environment variable; this flag overrides the environment variable. (default: 25)
 - `-smtp-user string`: Username for SMTP authentication.
-    - Can also be set by the `RUNNER_SMTP_USER` environment variable; this flag overrides the environment variable.
+  - Can also be set by the `RUNNER_SMTP_USER` environment variable; this flag overrides the environment variable.
 
 ### Sample Output
 
@@ -148,7 +155,7 @@ Schedule a cleanup job to run daily via cron:
 ```text
 RUNNER_LOG_DIR="/home/myusername/log/runner"
 # ...
-0	0	*	*	*	/usr/bin/find "$RUNNER_LOG_DIR" -mtime +30 -name "*.log" -delete
+0   0   *   *   *   /usr/bin/find "$RUNNER_LOG_DIR" -mtime +30 -name "*.log" -delete
 ```
 
 This will remove logs older than 30 days.
@@ -157,7 +164,7 @@ This will remove logs older than 30 days.
 
 - Issues: https://github.com/cdzombak/runner/issues/new
 - Author: [Chris Dzombak](https://www.dzombak.com)
-    - [GitHub: @cdzombak](https://www.github.com/cdzombak)
+  - [GitHub: @cdzombak](https://www.github.com/cdzombak)
 
 ## License
 
