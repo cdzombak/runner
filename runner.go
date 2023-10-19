@@ -84,6 +84,7 @@ func main() {
 		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", LogDirEnvVar))
 	workDir := flag.String("work-dir", "", "Set the working directory for the program.")
 	retries := flag.Int("retries", 0, "If the command fails, retry it this many times.")
+	retryDelayInt := flag.Int("retry-delay", 0, "If the command fails, wait this many seconds before retrying.")
 	asUser := flag.String("user", "", "Run the program as the given user. Ignored on Windows. "+
 		"(If provided, runner must be run as root or with CAP_SETUID and CAP_SETGID.)")
 	asUID := flag.Int("uid", -1, "Run the program as the given UID. Ignored on Windows. "+
@@ -229,7 +230,10 @@ func main() {
 
 	for triesRemaining > 0 {
 		if *retries > 0 && triesRemaining != 1+*retries {
-			programOutput = programOutput + "\n- Retrying -\n\n"
+			if *retryDelayInt > 0 {
+				time.Sleep(time.Duration(*retryDelayInt) * time.Second)
+			}
+			programOutput = programOutput + fmt.Sprintf("\n- Retrying after %d seconds -\n\n", *retryDelayInt)
 		}
 		triesRemaining--
 
