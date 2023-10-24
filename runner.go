@@ -21,7 +21,7 @@ var version = "<dev>"
 
 // Environment variables supported by runner:
 const (
-	MailToEnvVar      = "MAILTO"
+	MailToEnvVar      = "RUNNER_MAILTO"
 	MailFromEnvVar    = "RUNNER_MAIL_FROM"
 	SMTPUserEnvVar    = "RUNNER_SMTP_USER"
 	SMTPPassEnvVar    = "RUNNER_SMTP_PASS"

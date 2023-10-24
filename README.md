@@ -112,7 +112,7 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
 - `-mail-tab-char string`: Replace tab characters in emailed output by this string.
   - Can also be set by the `RUNNER_MAIL_TAB_CHAR` environment variable; this flag overrides the environment variable.
 - `-mailto string`: Send an email to the given address if the program fails or its output would otherwise be printed per `-healthy-exit`/`-print-if-[not]-match`/`-always-print`.
-  - Can also be set by the `MAILTO` environment variable; this flag overrides the environment variable.
+  - Can also be set by the `RUNNER_MAILTO` environment variable; this flag overrides the environment variable.
 - `-smtp-host string`: SMTP server hostname.
   - Can also be set by the `RUNNER_SMTP_HOST` environment variable; this flag overrides the environment variable.
 - `-smtp-pass string`: Password for SMTP authentication.
