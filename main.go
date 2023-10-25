@@ -122,8 +122,8 @@ func main() {
 		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", SMTPPassEnvVar))
 	smtpHost := flag.String("smtp-host", "", "SMTP server hostname. "+
 		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", SMTPHostEnvVar))
-	smtpPort := flag.Int("smtp-port", 0, "SMTP server port. "+
-		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable. (default: 25)", SMTPPortEnvVar))
+	smtpPort := flag.Int("smtp-port", 25, "SMTP server port. "+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", SMTPPortEnvVar))
 	mailTabCharReplacement := flag.String("mail-tab-char", "", "Replace tab characters in emailed output by this string. "+
 		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", MailTabCharEnvVar))
 
@@ -269,13 +269,11 @@ func main() {
 	if mailCfg.tabCharReplacement == "" {
 		mailCfg.tabCharReplacement = os.Getenv(MailTabCharEnvVar)
 	}
-	if mailCfg.smtpPort == 0 {
+	if os.Getenv(SMTPPortEnvVar) != "" && !WasFlagGiven("smtp-port") {
 		smtpPortStr := os.Getenv(SMTPPortEnvVar)
-		if smtpPortStr != "" {
-			mailCfg.smtpPort, err = strconv.Atoi(smtpPortStr)
-			if err != nil {
-				log.Fatalf("Failed to parse %s ('%s') as integer: %s", SMTPPortEnvVar, smtpPortStr, err)
-			}
+		mailCfg.smtpPort, err = strconv.Atoi(smtpPortStr)
+		if err != nil {
+			log.Fatalf("Failed to parse %s ('%s') as integer: %s", SMTPPortEnvVar, smtpPortStr, err)
 		}
 	}
 	if mailCfg.mailTo != "" && strings.Contains(mailCfg.mailTo, "@") {
