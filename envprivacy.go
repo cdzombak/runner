@@ -15,7 +15,10 @@ func hiddenEnvVars() []string {
 }
 
 func censoredEnvVars() []string {
-	return strings.Split(os.Getenv(CensorEnvVarsEnvVar), ":")
+	retv := strings.Split(os.Getenv(CensorEnvVarsEnvVar), ":")
+	retv = append(retv, SMTPPassEnvVar)
+	retv = append(retv, NtfyAccessTokenEnvVar)
+	return retv
 }
 
 func shouldHideEnvVar(varName string) bool {
@@ -23,7 +26,7 @@ func shouldHideEnvVar(varName string) bool {
 }
 
 func censoredEnvVarValue(varName, value string) string {
-	if !stringSliceContains(censoredEnvVars(), varName) && varName != SMTPPassEnvVar {
+	if !stringSliceContains(censoredEnvVars(), varName) {
 		return value
 	}
 	if len(value) < minLenForCensorHint {

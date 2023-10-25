@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"net/smtp"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/user"
@@ -15,6 +17,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/AnthonyHewins/gotfy"
 )
 
 var version = "<dev>"
@@ -29,6 +33,13 @@ const (
 	SMTPPortEnvVar    = "RUNNER_SMTP_PORT"
 	MailTabCharEnvVar = "RUNNER_MAIL_TAB_CHAR"
 
+	NtfyServerEnvVar      = "RUNNER_NTFY_SERVER"
+	NtfyTopicEnvVar       = "RUNNER_NTFY_TOPIC"
+	NtfyTagsEnvVar        = "RUNNER_NTFY_TAGS"
+	NtfyPriorityEnvVar    = "RUNNER_NTFY_PRIORITY"
+	NtfyEmailEnvVar       = "RUNNER_NTFY_EMAIL"
+	NtfyAccessTokenEnvVar = "RUNNER_NTFY_ACCESS_TOKEN"
+
 	OutFdPidEnvVar    = "RUNNER_OUTFD_PID"
 	OutFdStdoutEnvVar = "RUNNER_OUTFD_STDOUT"
 	OutFdStderrEnvVar = "RUNNER_OUTFD_STDERR"
@@ -38,6 +49,8 @@ const (
 	HideEnvVarsEnvVar   = "RUNNER_HIDE_ENV"
 	CensorEnvVarsEnvVar = "RUNNER_CENSOR_ENV"
 )
+
+const ntfyTimeout = time.Second * 10
 
 func usage() {
 	_, _ = fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] -- /path/to/program --program-args\n", filepath.Base(os.Args[0]))
@@ -52,7 +65,7 @@ func usage() {
 	flag.PrintDefaults()
 	_, _ = fmt.Fprintf(os.Stderr, "\nEnvironment variable-only options:\n")
 	_, _ = fmt.Fprintf(os.Stderr, "  %s\n    \tColon-separated list of environment variables whose values will be censored in output."+
-		"\n    \tRUNNER_SMTP_PASS is always censored.\n", CensorEnvVarsEnvVar)
+		"\n    \tRUNNER_SMTP_PASS and RUNNER_NTFY_ACCESS_TOKEN are always censored.\n", CensorEnvVarsEnvVar)
 	_, _ = fmt.Fprintf(os.Stderr, "  %s\n    \tColon-separated list of environment variables which will be entirely omitted from output.\n", HideEnvVarsEnvVar)
 	_, _ = fmt.Fprintf(os.Stderr, "\nVersion:\n  runner %s\n", version)
 	_, _ = fmt.Fprintf(os.Stderr, "\nGitHub:\n  https://github.com/cdzombak/runner\n")
@@ -105,6 +118,18 @@ func main() {
 		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable. (default: 25)", SMTPPortEnvVar))
 	mailTabCharReplacement := flag.String("mail-tab-char", "", "Replace tab characters in emailed output by this string. "+
 		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", MailTabCharEnvVar))
+	ntfyServer := flag.String("ntfy-server", "", "Send a notification to the given ntfy server if the program fails or its output would otherwise be printed per -healthy-exit/-print-if-[not]-match/-always-print. "+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", NtfyServerEnvVar))
+	ntfyTopic := flag.String("ntfy-topic", "", "The ntfy topic to send to. "+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", NtfyTopicEnvVar))
+	ntfyTags := flag.String("ntfy-tags", "", "Comma-separated list of ntfy tags to send. "+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", NtfyTagsEnvVar))
+	ntfyPriority := flag.Int("ntfy-priority", 3, "Priority for the notification sent to ntfy. Must be between 1-5, inclusive. "+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", NtfyPriorityEnvVar))
+	ntfyEmail := flag.String("ntfy-email", "", "If set, tell ntfy to send an email to this address. "+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", NtfyEmailEnvVar))
+	ntfyAccessToken := flag.String("ntfy-access-token", "", "If set, use this access token for ntfy. "+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", NtfyAccessTokenEnvVar))
 	printVersion := flag.Bool("version", false, "Print version and exit.")
 	flag.Usage = usage
 	flag.Parse()
@@ -218,6 +243,51 @@ func main() {
 	}
 	if *mailTabCharReplacement == "" {
 		*mailTabCharReplacement = os.Getenv(MailTabCharEnvVar)
+	}
+
+	ntfyOutput := false
+	if *ntfyServer == "" {
+		*ntfyServer = os.Getenv(NtfyServerEnvVar)
+	}
+	if *ntfyTopic == "" {
+		*ntfyTopic = os.Getenv(NtfyTopicEnvVar)
+	}
+	if *ntfyTags == "" {
+		*ntfyTags = os.Getenv(NtfyTagsEnvVar)
+	}
+	if *ntfyEmail == "" {
+		*ntfyEmail = os.Getenv(NtfyEmailEnvVar)
+	}
+	if *ntfyAccessToken == "" {
+		*ntfyAccessToken = os.Getenv(NtfyAccessTokenEnvVar)
+	}
+	if os.Getenv(NtfyPriorityEnvVar) != "" && !WasFlagGiven("ntfy-priority") {
+		ntfyPriorityStr := os.Getenv(NtfyPriorityEnvVar)
+		*ntfyPriority, err = strconv.Atoi(ntfyPriorityStr)
+		if err != nil {
+			log.Fatalf("Failed to parse the given %s ('%s') as integer: %s", NtfyPriorityEnvVar, ntfyPriorityStr, err)
+		}
+	}
+	if *ntfyPriority < 1 || *ntfyPriority > 5 {
+		log.Fatalf("Invalid ntfy priority %d given; must be between 1-5, inclusive.", *ntfyPriority)
+	}
+	var ntfyServerURL *url.URL
+	if *ntfyServer != "" {
+		if !strings.HasPrefix(strings.ToLower(*ntfyServer), "http") {
+			*ntfyServer = "https://" + *ntfyServer
+		}
+
+		ntfyServerURL, err = url.Parse(*ntfyServer)
+		if err != nil {
+			log.Fatalf("Failed to parse the given ntfy server URL ('%s'): %s", *ntfyServer, err)
+		}
+
+		if *ntfyTopic != "" {
+			ntfyOutput = true
+		} else {
+			log.Fatalf("If using -ntfy-server (or the %s env var), you must also specify -ntfy-topic (%s).",
+				NtfyServerEnvVar, NtfyTopicEnvVar)
+		}
 	}
 
 	triesRemaining := 1 + *retries
@@ -357,6 +427,8 @@ func main() {
 	if shouldPrint {
 		fmt.Printf(output)
 
+		summaryStr := fmt.Sprintf("[%s] %s running %s", hostname, statusStr, *jobName)
+
 		if mailOutput {
 			body := strings.ReplaceAll(output, "\n", "\r\n")
 			if *mailTabCharReplacement != "" {
@@ -370,7 +442,7 @@ func main() {
 					"X-Mailer: %s\r\n\r\n"+
 					"%s\r\n",
 				*mailFrom, *mailTo,
-				fmt.Sprintf("[%s] %s running %s", hostname, statusStr, *jobName),
+				summaryStr,
 				"runner "+version,
 				body,
 			))
@@ -379,7 +451,37 @@ func main() {
 			err = smtp.SendMail(smtpAddr, auth, *mailFrom, []string{*mailTo}, msg)
 
 			if err != nil {
-				warningLogs = append(warningLogs, fmt.Sprintf("Failed to send email to %s: %s", *mailTo, err))
+				warning := fmt.Sprintf("Failed to send email to %s: %s", *mailTo, err)
+				log.Println(warning)
+				output = output + fmt.Sprintf("\n[runner output warning] %s\n", warning)
+			}
+		}
+
+		if ntfyOutput {
+			ntfyPublisher, err := gotfy.NewPublisher(nil, ntfyServerURL, nil)
+			if err != nil {
+				warning := fmt.Sprintf("Failed to publish to ntfy: %s", err)
+				log.Println(warning)
+				output = output + fmt.Sprintf("\n[runner output warning] %s\n", warning)
+			} else {
+				if *ntfyAccessToken != "" {
+					ntfyPublisher.Headers.Set("authorization", fmt.Sprintf("Bearer %s", *ntfyAccessToken))
+				}
+				ctx, cancel := context.WithTimeout(context.Background(), ntfyTimeout)
+				defer cancel()
+				_, err = ntfyPublisher.SendMessage(ctx, &gotfy.Message{
+					Topic:    *ntfyTopic,
+					Tags:     strings.Split(*ntfyTags, ","),
+					Priority: gotfy.Priority(*ntfyPriority),
+					Email:    *ntfyEmail,
+					Title:    summaryStr,
+					Message:  output,
+				})
+				if err != nil {
+					warning := fmt.Sprintf("Failed to publish to ntfy: %s", err)
+					log.Println(warning)
+					output = output + fmt.Sprintf("\n[runner output warning] %s\n", warning)
+				}
 			}
 		}
 	}

@@ -2,11 +2,14 @@
 
 `runner` runs a program, capturing its output (from both standard output and standard error) and printing it to standard output only if the program fails.
 
-The output can also be printed if the program produces, or does not produce, a specific string. As of Runner 2.0.0, output can always be printed regardless of program exit status, with the `-always-print` option.
+The output can also be printed if the program produces, or does not produce, a specific string (see `-print-if-match` and `-print-if-not-match`). As of Runner 2.0.0, output can always be printed regardless of program exit status, with the `-always-print` option.
 
-Output is optionally written to a log directory regardless of program exit status.
+If the program failed, or its output would otherwise be printed, `runner` can also:
 
-`runner` can also email the program's output if provided with an SMTP server and credentials.
+- email the program's output, if provided with an SMTP server and credentials
+- send a notification via [ntfy](https://ntfy.sh).
+
+Output is optionally written to a log directory, regardless of program exit status.
 
 If `runner` is run as `root` or with `CAP_SETUID` and `CAP_SETGID`, the target program can be run as a different user.
 
@@ -20,7 +23,7 @@ The core `runner` logic (capturing and discarding program output) is useful when
 
 ### Containers
 
-`runner` 2.0.0 is useful in various containerization applications, even as a container entrypoint, since it can run a target program in the container, retry it if need be, and capture and email its output.
+`runner` 2.0.0 is useful in various containerization applications, even as a container entrypoint, since it can run a target program in the container, retry it if need be, and capture and email its output or send it to a ntfy server. Email and ntfy outputs can be configured by the image's end user via environment variables, requiring no build-time customization.
 
 It can even run the target program as a non-root user, and if `runner` is not the container's entrypoint, you can set environment variables like the following to redirect output to the root process's stdout/stderr:
 
@@ -96,7 +99,7 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
 - `-version`: Print version and exit.
 - `-work-dir string`: Set the working directory for the program.
 
-- `RUNNER_CENSOR_ENV` (environment variable only): Colon-separated list of environment variables whose values will be censored in output.
+- `RUNNER_CENSOR_ENV` (environment variable only): Colon-separated list of environment variables whose values will be censored in output. `RUNNER_SMTP_PASS` and `RUNNER_NTFY_ACCESS_TOKEN` are always censored.
 - `RUNNER_HIDE_ENV` (environment variable only): Colon-separated list of environment variables which will be entirely omitted from output.
 
 #### Run as another user
@@ -121,6 +124,21 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
   - Can also be set by the `RUNNER_SMTP_PORT` environment variable; this flag overrides the environment variable. (default: 25)
 - `-smtp-user string`: Username for SMTP authentication.
   - Can also be set by the `RUNNER_SMTP_USER` environment variable; this flag overrides the environment variable.
+
+#### Ntfy Options
+
+- `-ntfy-access-token string`: If set, use this access token for ntfy.
+  - Can also be set by the RUNNER_NTFY_ACCESS_TOKEN environment variable; this flag overrides the environment variable.
+- `-ntfy-email string`: If set, tell ntfy to send an email to this address.
+  - Can also be set by the RUNNER_NTFY_EMAIL environment variable; this flag overrides the environment variable.
+- `-ntfy-priority int`: Priority for the notification sent to ntfy. Must be between 1-5, inclusive.
+  - Can also be set by the RUNNER_NTFY_PRIORITY environment variable; this flag overrides the environment variable. (default 3)
+- `-ntfy-server string`: Send a notification to the given ntfy server if the program fails or its output would otherwise be printed per -healthy-exit/-print-if-[not]-match/-always-print.
+  - Can also be set by the RUNNER_NTFY_SERVER environment variable; this flag overrides the environment variable.
+- `-ntfy-tags string`: Comma-separated list of ntfy tags to send.
+  - Can also be set by the RUNNER_NTFY_TAGS environment variable; this flag overrides the environment variable.
+- `-ntfy-topic string`: The ntfy topic to send to.
+  - Can also be set by the RUNNER_NTFY_TOPIC environment variable; this flag overrides the environment variable.
 
 ### Sample Output
 
