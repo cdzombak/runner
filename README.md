@@ -126,7 +126,7 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
 - `-smtp-user string`: Username for SMTP authentication.
   - Can also be set by the `RUNNER_SMTP_USER` environment variable; this flag overrides the environment variable.
 
-#### Ntfy Options
+#### Ntfy options
 
 - `-ntfy-access-token string`: If set, use this access token for ntfy.
   - Can also be set by the `RUNNER_NTFY_ACCESS_TOKEN` environment variable; this flag overrides the environment variable.
@@ -141,7 +141,7 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
 - `-ntfy-topic string`: The ntfy topic to send to.
   - Can also be set by the `RUNNER_NTFY_TOPIC` environment variable; this flag overrides the environment variable.
 
-#### Discord Options
+#### Discord options
 
 - `-discord-webhook string`: If set, post to this Discord webhook if the program fails or its output would otherwise be printed per -healthy-exit/-print-if-[not]-match/-always-print.
   - Can also be set by the `RUNNER_DISCORD_WEBHOOK` environment variable; this flag overrides the environment variable.
