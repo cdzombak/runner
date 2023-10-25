@@ -234,8 +234,8 @@ jobs:
         uses: niniyas/ntfy-action@master
         if: ${{ !contains(needs.*.result, 'failure') && (needs.meta.outputs.is_release == 'true' || needs.meta.outputs.is_prerelease == 'true') }}
         with:
-          url: 'https://ntfy.cdzombak.net'
-          topic: 'gha-builds'
+          url: "https://ntfy.cdzombak.net"
+          topic: "gha-builds"
           priority: 3
           headers: '{"authorization": "Bearer ${{ secrets.NTFY_TOKEN }}"}'
           tags: white_check_mark
@@ -245,8 +245,8 @@ jobs:
         uses: niniyas/ntfy-action@master
         if: ${{ contains(needs.*.result, 'failure') }}
         with:
-          url: 'https://ntfy.cdzombak.net'
-          topic: 'gha-builds'
+          url: "https://ntfy.cdzombak.net"
+          topic: "gha-builds"
           priority: 3
           headers: '{"authorization": "Bearer ${{ secrets.NTFY_TOKEN }}"}'
           tags: no_entry

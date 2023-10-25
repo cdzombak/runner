@@ -1,3 +1,4 @@
+---
 issues:
   exclude-rules:
     - path: '(.+)_(linux|windows|darwin)\.go'

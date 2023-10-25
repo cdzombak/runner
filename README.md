@@ -181,7 +181,7 @@ This will remove logs older than 30 days.
 
 ## About
 
-- Issues: https://github.com/cdzombak/runner/issues/new
+- [Issue Tracker](https://github.com/cdzombak/runner/issues)
 - Author: [Chris Dzombak](https://www.dzombak.com)
   - [GitHub: @cdzombak](https://www.github.com/cdzombak)
 

@@ -1,13 +1,12 @@
 # https://megalinter.io/configuration/
-
 ---
-APPLY_FIXES: all
 DISABLE:
   - SPELL
   - DOCKERFILE
   - REPOSITORY
 DISABLE_LINTERS:
   - MAKEFILE_CHECKMAKE
+
 PLUGINS:
   - https://raw.githubusercontent.com/cdzombak/mega-linter-plugin-dockerfilelint/main/mega-linter-plugin-dockerfilelint/dockerfilelint.megalinter-descriptor.yml
 
