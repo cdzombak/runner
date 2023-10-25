@@ -278,14 +278,15 @@ func main() {
 			}
 		}
 	}
-	if mailCfg.smtpPort < 1 || mailCfg.smtpPort > 65535 {
-		mailCfg.smtpPort = 25
-		runCfg.outputConfig.addSetupWarning(fmt.Sprintf(
-			"Invalid SMTP port %d given; using default of 25 instead", mailCfg.smtpPort))
-	}
 	if mailCfg.mailTo != "" && strings.Contains(mailCfg.mailTo, "@") {
 		if *smtpUser != "" || *smtpPass != "" || *smtpHost != "" {
 			shouldMailOutput = true
+
+			if mailCfg.smtpPort < 1 || mailCfg.smtpPort > 65535 {
+				runCfg.outputConfig.addSetupWarning(fmt.Sprintf(
+					"Invalid SMTP port %d given; using default of 25 instead", mailCfg.smtpPort))
+				mailCfg.smtpPort = 25
+			}
 		} else {
 			runCfg.outputConfig.addSetupWarning(fmt.Sprintf(
 				"If using -mailto (or the %s env var), you must also specify -smtp-user (%s), -smtp-pass (%s), -smtp-host (%s).",
