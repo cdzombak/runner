@@ -100,6 +100,8 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
 - `-version`: Print version and exit.
 - `-work-dir string`: Set the working directory for the program.
 
+#### Hiding sensitive environment variables
+
 - `RUNNER_CENSOR_ENV` (environment variable only): Colon-separated list of environment variables whose values will be censored in output. `RUNNER_SMTP_PASS` and `RUNNER_NTFY_ACCESS_TOKEN` are always censored.
 - `RUNNER_HIDE_ENV` (environment variable only): Colon-separated list of environment variables which will be entirely omitted from output.
 
