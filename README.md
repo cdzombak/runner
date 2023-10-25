@@ -7,8 +7,8 @@ The output can also be printed if the program produces, or does not produce, a s
 If the program failed, or its output would otherwise be printed, `runner` can also:
 
 - email the program's output, if provided with an SMTP server and credentials
-- send a notification via [ntfy](https://ntfy.sh).
-- send a notification to a Discord webhook.
+- send a notification via [ntfy](https://ntfy.sh)
+- send a notification to a Discord webhook
 
 Output is optionally written to a log directory, regardless of program exit status.
 
