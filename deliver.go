@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
 	"net/smtp"
 	"net/url"
 	"strings"
@@ -12,8 +16,9 @@ import (
 )
 
 type deliveryConfig struct {
-	mail *mailDeliveryConfig
-	ntfy *ntfyDeliveryConfig
+	mail    *mailDeliveryConfig
+	ntfy    *ntfyDeliveryConfig
+	discord *discordDeliveryConfig
 }
 
 // mailDeliveryConfig, if provided, is assumed to be complete, valid, and internally consistent.
@@ -37,7 +42,14 @@ type ntfyDeliveryConfig struct {
 	ntfyPriority    int
 }
 
-const ntfyTimeout = time.Second * 10
+// discordDeliveryConfig, if provided, is assumed to be complete, valid, and internally consistent.
+type discordDeliveryConfig struct {
+	discordWebhookURL string
+	logFileName       string
+}
+
+const ntfyTimeout = 15 * time.Second
+const discordTimeout = 15 * time.Second
 
 func executeDeliveries(config *deliveryConfig, runOutput *runOutput) []error {
 	var deliveryErrors []error
@@ -48,6 +60,10 @@ func executeDeliveries(config *deliveryConfig, runOutput *runOutput) []error {
 	if config.ntfy != nil {
 		deliveryErrors = extendErrSlice(deliveryErrors,
 			executeNtfyDelivery(config.ntfy, runOutput))
+	}
+	if config.discord != nil {
+		deliveryErrors = extendErrSlice(deliveryErrors,
+			executeDiscordDelivery(config.discord, runOutput))
 	}
 	return deliveryErrors
 }
@@ -65,7 +81,7 @@ func executeMailDelivery(cfg *mailDeliveryConfig, runOutput *runOutput) error {
 			"X-Mailer: %s\r\n\r\n"+
 			"%s\r\n",
 		cfg.mailFrom, cfg.mailTo,
-		runOutput.summaryLine,
+		fmt.Sprintf("%s %s", runOutput.emoj, runOutput.summaryLine),
 		productIdentifier(),
 		body,
 	))
@@ -101,6 +117,44 @@ func executeNtfyDelivery(cfg *ntfyDeliveryConfig, runOutput *runOutput) error {
 	})
 	if err != nil {
 		return fmt.Errorf("failed to send ntfy notification: %w", err)
+	}
+	return nil
+}
+
+func executeDiscordDelivery(cfg *discordDeliveryConfig, runOutput *runOutput) error {
+	webhookBody := &bytes.Buffer{}
+	writer := multipart.NewWriter(webhookBody)
+	err := writer.WriteField("content", fmt.Sprintf("%s %s", runOutput.emoj, runOutput.summaryLine))
+	if err != nil {
+		return fmt.Errorf("failed building Discord webhook body (.WriteField): %w", err)
+	}
+	filePart, err := writer.CreateFormFile("files[0]", cfg.logFileName)
+	if err != nil {
+		return fmt.Errorf("failed building Discord webhook body (.CreateFormFile): %w", err)
+	}
+	_, err = filePart.Write([]byte(runOutput.output))
+	if err != nil {
+		return fmt.Errorf("failed attaching log file to Discord webhook body: %w", err)
+	}
+	err = writer.Close()
+	if err != nil {
+		return fmt.Errorf("failed building Discord webhook body (.Close): %w", err)
+	}
+
+	client := http.DefaultClient
+	client.Timeout = discordTimeout
+
+	resp, err := client.Post(cfg.discordWebhookURL, writer.FormDataContentType(), webhookBody)
+	if err != nil {
+		return fmt.Errorf("failed POSTing Discord webhook: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		respContent, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed POSTing Discord webhook (%s) and reading response body: %w", resp.Status, err)
+		}
+		return fmt.Errorf("failed POSTing Discord webhook (%s): %s", resp.Status, respContent)
 	}
 	return nil
 }

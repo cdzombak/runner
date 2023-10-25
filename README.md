@@ -8,6 +8,7 @@ If the program failed, or its output would otherwise be printed, `runner` can al
 
 - email the program's output, if provided with an SMTP server and credentials
 - send a notification via [ntfy](https://ntfy.sh).
+- send a notification to a Discord webhook.
 
 Output is optionally written to a log directory, regardless of program exit status.
 
@@ -23,7 +24,7 @@ The core `runner` logic (capturing and discarding program output) is useful when
 
 ### Containers
 
-`runner` 2.0.0 is useful in various containerization applications, even as a container entrypoint, since it can run a target program in the container, retry it if need be, and capture and email its output or send it to a ntfy server. Email and ntfy outputs can be configured by the image's end user via environment variables, requiring no build-time customization.
+`runner` 2.0.0 is useful in various containerization applications, even as a container entrypoint, since it can run a target program in the container, retry it if need be, and capture its output, and send the output via email, ntfy, or Discord. Email, ntfy, and Discord outputs can be configured by the image's end user via environment variables, requiring no build-time customization.
 
 It can even run the target program as a non-root user, and if `runner` is not the container's entrypoint, you can set environment variables like the following to redirect output to the root process's stdout/stderr:
 
@@ -128,17 +129,22 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
 #### Ntfy Options
 
 - `-ntfy-access-token string`: If set, use this access token for ntfy.
-  - Can also be set by the RUNNER_NTFY_ACCESS_TOKEN environment variable; this flag overrides the environment variable.
+  - Can also be set by the `RUNNER_NTFY_ACCESS_TOKEN` environment variable; this flag overrides the environment variable.
 - `-ntfy-email string`: If set, tell ntfy to send an email to this address.
-  - Can also be set by the RUNNER_NTFY_EMAIL environment variable; this flag overrides the environment variable.
+  - Can also be set by the `RUNNER_NTFY_EMAIL` environment variable; this flag overrides the environment variable.
 - `-ntfy-priority int`: Priority for the notification sent to ntfy. Must be between 1-5, inclusive.
-  - Can also be set by the RUNNER_NTFY_PRIORITY environment variable; this flag overrides the environment variable. (default 3)
+  - Can also be set by the `RUNNER_NTFY_PRIORITY` environment variable; this flag overrides the environment variable. (default 3)
 - `-ntfy-server string`: Send a notification to the given ntfy server if the program fails or its output would otherwise be printed per -healthy-exit/-print-if-[not]-match/-always-print.
-  - Can also be set by the RUNNER_NTFY_SERVER environment variable; this flag overrides the environment variable.
+  - Can also be set by the `RUNNER_NTFY_SERVER` environment variable; this flag overrides the environment variable.
 - `-ntfy-tags string`: Comma-separated list of ntfy tags to send.
-  - Can also be set by the RUNNER_NTFY_TAGS environment variable; this flag overrides the environment variable.
+  - Can also be set by the `RUNNER_NTFY_TAGS` environment variable; this flag overrides the environment variable.
 - `-ntfy-topic string`: The ntfy topic to send to.
-  - Can also be set by the RUNNER_NTFY_TOPIC environment variable; this flag overrides the environment variable.
+  - Can also be set by the `RUNNER_NTFY_TOPIC` environment variable; this flag overrides the environment variable.
+
+#### Discord Options
+
+- `-discord-webhook string`: If set, post to this Discord webhook if the program fails or its output would otherwise be printed per -healthy-exit/-print-if-[not]-match/-always-print.
+  - Can also be set by the `RUNNER_DISCORD_WEBHOOK` environment variable; this flag overrides the environment variable.
 
 ### Sample Output
 

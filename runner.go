@@ -47,6 +47,7 @@ type runAsUserConfig struct {
 type runOutput struct {
 	output      string
 	summaryLine string
+	emoj        string
 	jobName     string
 	startTime   time.Time
 	endTime     time.Time
@@ -212,6 +213,10 @@ func runner(config *runConfig) *runOutput {
 	}
 
 	summaryLine := fmt.Sprintf("[%s] %s running %s", config.outputConfig.hostname, statusStr, config.outputConfig.jobName)
+	emoj := "🔴"
+	if statusStr == statusSucceeded {
+		emoj = "🟢"
+	}
 
 	return &runOutput{
 		output:      output.String(),
@@ -220,6 +225,7 @@ func runner(config *runConfig) *runOutput {
 		startTime:   startTime,
 		endTime:     endTime,
 		shouldPrint: shouldPrint,
+		emoj:        emoj,
 	}
 }
 

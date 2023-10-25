@@ -9,9 +9,10 @@ import (
 )
 
 type logConfig struct {
-	logDir   string
-	runAsUID int
-	runAsGID int
+	logDir      string
+	logFileName string
+	runAsUID    int
+	runAsGID    int
 }
 
 const (
@@ -37,11 +38,7 @@ func writeLogs(cfg *logConfig, runOut *runOutput, deliveryErrs []error) error {
 		}
 	}
 
-	logFileName := fmt.Sprintf("%s.%s.log",
-		removeBadFilenameChars(runOut.jobName),
-		runOut.startTime.Format("2006-01-02T15-04-05.000-0700"),
-	)
-	logFile := filepath.Join(cfg.logDir, logFileName)
+	logFile := filepath.Join(cfg.logDir, cfg.logFileName)
 
 	logContent := strings.Builder{}
 	logContent.WriteString(runOut.output)

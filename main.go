@@ -38,6 +38,11 @@ const (
 	NtfyAccessTokenEnvVar = "RUNNER_NTFY_ACCESS_TOKEN"
 )
 
+// Environment variables supporting Discord delivery:
+const (
+	DiscordWebhookEnvVar = "RUNNER_DISCORD_WEBHOOK"
+)
+
 // Environment variables supporting output redirection:
 const (
 	OutFdPidEnvVar    = "RUNNER_OUTFD_PID"
@@ -140,6 +145,10 @@ func main() {
 		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", NtfyEmailEnvVar))
 	ntfyAccessToken := flag.String("ntfy-access-token", "", "If set, use this access token for ntfy. "+
 		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", NtfyAccessTokenEnvVar))
+
+	// Discord delivery flags:
+	discordHookURL := flag.String("discord-webhook", "", "If set, post to this Discord webhook if the program fails or its output would otherwise be printed per -healthy-exit/-print-if-[not]-match/-always-print. "+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", DiscordWebhookEnvVar))
 
 	printVersion := flag.Bool("version", false, "Print version and exit.")
 	flag.Usage = usage
@@ -352,6 +361,19 @@ func main() {
 		deliveryCfg.ntfy = ntfyCfg
 	}
 
+	discordCfg := &discordDeliveryConfig{
+		discordWebhookURL: *discordHookURL,
+	}
+	if discordCfg.discordWebhookURL == "" {
+		discordCfg.discordWebhookURL = os.Getenv(DiscordWebhookEnvVar)
+	}
+	if discordCfg.discordWebhookURL != "" {
+		if !strings.HasPrefix(strings.ToLower(discordCfg.discordWebhookURL), "http") {
+			discordCfg.discordWebhookURL = "https://" + discordCfg.discordWebhookURL
+		}
+		deliveryCfg.discord = discordCfg
+	}
+
 	logCfg := &logConfig{
 		logDir:   *logDir,
 		runAsUID: -1,
@@ -368,15 +390,24 @@ func main() {
 	// Configuration is (finally) complete!
 	// Run the program, print+deliver output if necessary, and write log file[s].
 
-	runOutput := runner(runCfg)
+	runOut := runner(runCfg)
+
+	logFileName := fmt.Sprintf("%s.%s.log",
+		removeBadFilenameChars(runOut.jobName),
+		runOut.startTime.Format("2006-01-02T15-04-05.000-0700"),
+	)
+	if deliveryCfg.discord != nil {
+		deliveryCfg.discord.logFileName = logFileName
+	}
+	logCfg.logFileName = logFileName
 
 	var deliveryErrs []error
-	if runOutput.shouldPrint {
-		fmt.Print(runOutput.output)
-		deliveryErrs = executeDeliveries(deliveryCfg, runOutput)
+	if runOut.shouldPrint {
+		fmt.Print(runOut.output)
+		deliveryErrs = executeDeliveries(deliveryCfg, runOut)
 	}
 
-	err = writeLogs(logCfg, runOutput, deliveryErrs)
+	err = writeLogs(logCfg, runOut, deliveryErrs)
 	if err != nil {
 		log.Fatalf("Failed to write logs: %s", err)
 	}
