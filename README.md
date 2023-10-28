@@ -196,3 +196,8 @@ This will remove logs older than 30 days.
 ## License
 
 LGPLv3; see `LICENSE` in this repository.
+
+Runner uses or includes code from open-source libraries:
+
+- [AnthonyHewins/gotfy](https://github.com/AnthonyHewins/gotfy) (Apache 2 License)
+- [oraoto/go-pidfd](https://github.com/oraoto/go-pidfd) (MIT License)
