@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"os/user"
@@ -43,6 +44,11 @@ const (
 	DiscordWebhookEnvVar = "RUNNER_DISCORD_WEBHOOK"
 )
 
+// Environment variables supporting success notification delivery:
+const (
+	SuccessNotifyEnvVar = "RUNNER_SUCCESS_NOTIFY"
+)
+
 // Environment variables supporting output redirection:
 const (
 	OutFdPidEnvVar    = "RUNNER_OUTFD_PID"
@@ -57,6 +63,8 @@ const (
 	HideEnvVarsEnvVar   = "RUNNER_HIDE_ENV"
 	CensorEnvVarsEnvVar = "RUNNER_CENSOR_ENV"
 )
+
+const successNotifyTimeout = 10 * time.Second
 
 func usage() {
 	_, _ = fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] -- /path/to/program --program-args\n", filepath.Base(os.Args[0]))
@@ -146,9 +154,13 @@ func main() {
 	ntfyAccessToken := flag.String("ntfy-access-token", "", "If set, use this access token for ntfy. "+
 		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", NtfyAccessTokenEnvVar))
 
-	// Discord delivery flags:
+	// Discord delivery flag:
 	discordHookURL := flag.String("discord-webhook", "", "If set, post to this Discord webhook if the program fails or its output would otherwise be printed per -healthy-exit/-print-if-[not]-match/-always-print. "+
 		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", DiscordWebhookEnvVar))
+
+	// Success notification delivery flag:
+	successNotifyURL := flag.String("success-notify", "", "If set, GET this URL if the program succeeds. This is useful in conjunction with e.g. Uptime Kuma's push monitors. "+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", SuccessNotifyEnvVar))
 
 	printVersion := flag.Bool("version", false, "Print version and exit.")
 	flag.Usage = usage
@@ -374,6 +386,10 @@ func main() {
 		deliveryCfg.discord = discordCfg
 	}
 
+	if *successNotifyURL == "" {
+		*successNotifyURL = os.Getenv(SuccessNotifyEnvVar)
+	}
+
 	logCfg := &logConfig{
 		logDir:   *logDir,
 		runAsUID: -1,
@@ -402,9 +418,24 @@ func main() {
 	logCfg.logFileName = logFileName
 
 	var deliveryErrs []error
+
 	if runOut.shouldPrint {
 		fmt.Print(runOut.output)
 		deliveryErrs = executeDeliveries(deliveryCfg, runOut)
+	}
+
+	if runOut.succeeded && *successNotifyURL != "" {
+		client := http.DefaultClient
+		client.Timeout = successNotifyTimeout
+		resp, err := client.Get(*successNotifyURL)
+		if err != nil {
+			deliveryErrs = append(deliveryErrs, fmt.Errorf("failed to GET success notification URL '%s': %w", *successNotifyURL, err))
+		} else {
+			defer resp.Body.Close()
+			if resp.StatusCode > 200 || resp.StatusCode < 299 {
+				deliveryErrs = append(deliveryErrs, fmt.Errorf("failed to GET success notification URL '%s' (%s)", *successNotifyURL, resp.Status))
+			}
+		}
 	}
 
 	err = writeLogs(logCfg, runOut, deliveryErrs)

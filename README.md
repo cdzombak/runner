@@ -148,6 +148,13 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
 - `-discord-webhook string`: If set, post to this Discord webhook if the program fails or its output would otherwise be printed per -healthy-exit/-print-if-[not]-match/-always-print.
   - Can also be set by the `RUNNER_DISCORD_WEBHOOK` environment variable; this flag overrides the environment variable.
 
+### Success notification options (for e.g. [Uptime Kuma](https://github.com/louislam/uptime-kuma) Push monitors)
+
+- `success-notify string`: If set, `GET` this URL if the program succeeds.
+  - Can also be set by the `RUNNER_SUCCESS_NOTIFY` environment variable; this flag overrides the environment variable.
+
+This heartbeat-style notification is useful if you want to have Uptime Kuma or a similar tool alert you if your program stops succeeding.
+
 ### Sample Output
 
 ```text

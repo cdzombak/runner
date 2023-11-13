@@ -49,7 +49,7 @@ type discordDeliveryConfig struct {
 }
 
 const ntfyTimeout = 15 * time.Second
-const discordTimeout = 15 * time.Second
+const discordTimeout = 10 * time.Second
 
 func executeDeliveries(config *deliveryConfig, runOutput *runOutput) []error {
 	var deliveryErrors []error

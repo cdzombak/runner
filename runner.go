@@ -51,6 +51,7 @@ type runOutput struct {
 	jobName     string
 	startTime   time.Time
 	endTime     time.Time
+	succeeded   bool
 	shouldPrint bool
 }
 
@@ -64,7 +65,7 @@ func runner(config *runConfig) *runOutput {
 	var startTime, endTime time.Time
 
 	triesRemaining := 1 + config.retries
-	statusStr := statusFailed
+	succeeded := false
 	shouldPrint := true
 	exitCode := -1
 
@@ -120,7 +121,7 @@ func runner(config *runConfig) *runOutput {
 
 		for _, v := range config.healthyExitCodes {
 			if exitCode == v {
-				statusStr = statusSucceeded
+				succeeded = true
 				shouldPrint = config.outputConfig.alwaysPrint
 				triesRemaining = 0
 				break
@@ -152,6 +153,13 @@ func runner(config *runConfig) *runOutput {
 			config.outputConfig.addSetupWarning(fmt.Sprintf(
 				"Failed to get runner's current working directory: %s (this error affects printed output only)", err))
 		}
+	}
+
+	statusEmoj := "🔴"
+	statusStr := statusFailed
+	if succeeded {
+		statusEmoj = "🟢"
+		statusStr = statusSucceeded
 	}
 
 	jobSummaryOutput := fmt.Sprintf(
@@ -213,10 +221,6 @@ func runner(config *runConfig) *runOutput {
 	}
 
 	summaryLine := fmt.Sprintf("[%s] %s running %s", config.outputConfig.hostname, statusStr, config.outputConfig.jobName)
-	emoj := "🔴"
-	if statusStr == statusSucceeded {
-		emoj = "🟢"
-	}
 
 	return &runOutput{
 		output:      output.String(),
@@ -225,7 +229,8 @@ func runner(config *runConfig) *runOutput {
 		startTime:   startTime,
 		endTime:     endTime,
 		shouldPrint: shouldPrint,
-		emoj:        emoj,
+		succeeded:   succeeded,
+		emoj:        statusEmoj,
 	}
 }
 
