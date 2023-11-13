@@ -276,6 +276,7 @@ func main() {
 		mailCfg.mailFrom = os.Getenv(MailFromEnvVar)
 	}
 	if mailCfg.mailFrom == "" {
+		// TODO(cdzombak):
 		mailCfg.mailFrom = "runner@" + hostname
 	}
 	if mailCfg.smtpUser == "" {
@@ -298,7 +299,7 @@ func main() {
 		}
 	}
 	if mailCfg.mailTo != "" && strings.Contains(mailCfg.mailTo, "@") {
-		if *smtpUser != "" || *smtpPass != "" || *smtpHost != "" {
+		if *smtpUser != "" && *smtpPass != "" && *smtpHost != "" {
 			shouldMailOutput = true
 
 			if mailCfg.smtpPort < 1 || mailCfg.smtpPort > 65535 {
