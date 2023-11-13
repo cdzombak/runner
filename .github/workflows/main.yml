@@ -50,6 +50,9 @@ jobs:
       aptly_repo_name: oss
       aptly_dist: any
       aptly_publish_prefix: s3:dist.cdzombak.net:deb_oss
+      brewtap_owner: ${{ github.repository_owner }}
+      brewtap_name: oss
+      brewtap_formula_dir: formula
       is_prerelease: >-
         ${{
           steps.running_version_tag.outputs.is_running_version_tag_update != 'true' &&
@@ -224,11 +227,37 @@ jobs:
             --data '{"ForceOverwrite": true}' \
             "${{ secrets.APTLY_API }}/publish/${{ needs.meta.outputs.aptly_publish_prefix }}/${{ needs.meta.outputs.aptly_dist }}?_async=true"
 
+  homebrew:
+    name: Update Homebrew Tap
+    needs: [meta, binaries]
+    if: needs.meta.outputs.is_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release to ${{ needs.meta.outputs.brewtap_owner }}/${{ needs.meta.outputs.brewtap_name }} tap
+        uses: Justintime50/homebrew-releaser@v1
+        with:
+          homebrew_owner: ${{ needs.meta.outputs.brewtap_owner }}
+          homebrew_tap: homebrew-${{ needs.meta.outputs.brewtap_name }}
+          formula_folder: ${{ needs.meta.outputs.brewtap_formula_dir }}
+          update_readme_table: true
+          github_token: ${{ secrets.HOMEBREW_RELEASER_PAT }}
+          commit_owner: homebrew-releaser-bot
+          commit_email: homebrew-releaser-bot@users.noreply.github.com
+
+          target_darwin_amd64: true
+          target_darwin_arm64: true
+          target_linux_amd64: true
+          target_linux_arm64: true
+
+          install: 'bin.install "${{ needs.meta.outputs.bin_name }}"'
+          test: 'assert_match("${{ needs.meta.outputs.bin_version }}", shell_output("#{bin}/${{ needs.meta.outputs.bin_name }} -version"))'
+
+
   ntfy:
     name: Ntfy
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
-    needs: [meta, lint, binaries, release, aptly]
+    needs: [meta, lint, binaries, release, aptly, homebrew]
     steps:
       - name: Send success notification
         uses: niniyas/ntfy-action@master
