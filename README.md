@@ -55,6 +55,12 @@ Then install `runner` via `apt-get`:
 sudo apt-get install runner
 ```
 
+### macOS via Homebrew
+
+```shell
+brew install cdzombak/oss/runner
+```
+
 ### Manual installation from build artifacts
 
 Pre-built binaries for Linux and macOS on various architectures are downloadable from each [GitHub Release](https://github.com/cdzombak/runner/releases). Debian packages for each release are available as well.
