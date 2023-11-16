@@ -113,7 +113,6 @@ func runner(config *runConfig) *runOutput {
 			}
 		}
 
-		exitCode := -1
 		if cmd.ProcessState != nil {
 			exitCode = cmd.ProcessState.ExitCode()
 		}
