@@ -110,6 +110,7 @@ func main() {
 	flag.Var(&printIfNotMatch, "print-if-not-match", "Print/mail output if the given (case-sensitive) string does not appear in the program's output, even if it was a healthy exit. "+
 		"May be specified multiple times.")
 	alwaysPrint := flag.Bool("always-print", false, "Always print/mail the program's output, sidestepping exit code and -print-if[-not]-match checks.")
+	printToStderr := flag.Bool("print-stderr", false, "Print output to stderr instead of stdout (if this flag is not given, output is printed to stdout).")
 	jobName := flag.String("job-name", "", "Job name used in failure notifications and log file name. (default: program name, without path)")
 	hideEnv := flag.Bool("hide-env", false, "Hide the process's environment, which is normally printed & logged as part of the output.")
 	logDir := flag.String("log-dir", "", "The directory to write run logs to. "+
@@ -420,8 +421,16 @@ func main() {
 	var deliveryErrs []error
 
 	if runOut.shouldPrint {
-		fmt.Print(runOut.output)
 		deliveryErrs = executeDeliveries(deliveryCfg, runOut)
+
+		to := os.Stdout
+		if *printToStderr {
+			to = os.Stderr
+		}
+		_, err := fmt.Fprint(to, runOut.output)
+		if err != nil {
+			deliveryErrs = append(deliveryErrs, fmt.Errorf("failed to print output: %w", err))
+		}
 	}
 
 	if runOut.succeeded && *successNotifyURL != "" {
