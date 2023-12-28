@@ -243,12 +243,11 @@ jobs:
           github_token: ${{ secrets.HOMEBREW_RELEASER_PAT }}
           commit_owner: homebrew-releaser-bot
           commit_email: homebrew-releaser-bot@users.noreply.github.com
-
           target_darwin_amd64: true
           target_darwin_arm64: true
           target_linux_amd64: true
           target_linux_arm64: true
-
+          version: ${{ needs.meta.outputs.bin_version }}
           install: 'bin.install "${{ needs.meta.outputs.bin_name }}"'
           test: 'assert_match("${{ needs.meta.outputs.bin_version }}", shell_output("#{bin}/${{ needs.meta.outputs.bin_name }} -version"))'
 
