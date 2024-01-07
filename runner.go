@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -22,6 +23,7 @@ type runConfig struct {
 	retryDelay       time.Duration
 	outputConfig     *runOutputConfig
 	runAsUser        *runAsUserConfig
+	timeout          time.Duration
 }
 
 type runOutputConfig struct {
@@ -82,8 +84,12 @@ func runner(config *runConfig) *runOutput {
 		}
 		triesRemaining--
 
-		startTime = time.Now()
-		cmd := exec.Command(config.programName, config.programArgs...)
+		execCtx := context.Background()
+		var execCancel context.CancelFunc
+		if config.timeout > 0 {
+			execCtx, execCancel = context.WithTimeout(execCtx, config.timeout)
+		}
+		cmd := exec.CommandContext(execCtx, config.programName, config.programArgs...)
 		if config.runAsUser != nil {
 			cmd.SysProcAttr = config.runAsUser.sysProcAttr
 		}
@@ -98,11 +104,18 @@ func runner(config *runConfig) *runOutput {
 			}
 			cmd.Env = append(cmd.Env, "HOME="+config.runAsUser.userHome)
 		}
+		startTime = time.Now()
 		cmdOut, err := cmd.CombinedOutput()
 		endTime = time.Now()
 		cmdOutStr := string(cmdOut)
+		if execCancel != nil {
+			execCancel()
+		}
 
 		if err != nil {
+			if errors.Is(execCtx.Err(), context.DeadlineExceeded) {
+				cmdOutStr = fmt.Sprintf("%s\n(timed out after %.0f seconds)\n", cmdOutStr, config.timeout.Seconds())
+			}
 			var exitError *exec.ExitError
 			if errors.As(err, &exitError) {
 				// cmd started, but did not return a healthy exit code.

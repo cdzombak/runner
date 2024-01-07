@@ -101,6 +101,7 @@ func main() {
 		"May be specified multiple times to provide more than one success exit code. (default: 0)")
 	retries := flag.Int("retries", 0, "If the command fails, retry it this many times.")
 	retryDelayInt := flag.Int("retry-delay", 0, "If the command fails, wait this many seconds before retrying.")
+	timeout := flag.Int("timeout", 0, "Maximum number of seconds for the program's execution. If retries are allowed, each try may take this long. The timeout given does not include retry delay.")
 
 	// output configuration flags:
 	var printIfMatch StringSlice
@@ -204,6 +205,9 @@ func main() {
 	}
 	if *retryDelayInt > 0 {
 		runCfg.retryDelay = time.Duration(*retryDelayInt) * time.Second
+	}
+	if *timeout > 0 {
+		runCfg.timeout = time.Duration(*timeout) * time.Second
 	}
 
 	var runAsConfig *runAsUserConfig
