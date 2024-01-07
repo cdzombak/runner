@@ -48,7 +48,7 @@ type discordDeliveryConfig struct {
 	logFileName       string
 }
 
-const ntfyTimeout = 15 * time.Second
+const ntfyTimeout = 10 * time.Second
 const discordTimeout = 10 * time.Second
 const mailTimeout = 10 * time.Second
 
