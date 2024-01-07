@@ -156,7 +156,14 @@ func executeDiscordDelivery(cfg *discordDeliveryConfig, runOutput *runOutput) er
 	client := http.DefaultClient
 	client.Timeout = discordTimeout
 
-	resp, err := client.Post(cfg.discordWebhookURL, writer.FormDataContentType(), webhookBody)
+	req, err := http.NewRequest(http.MethodPost, cfg.discordWebhookURL, webhookBody)
+	if err != nil {
+		return fmt.Errorf("failed building Discord webhook HTTP request: %w", err)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("User-Agent", productIdentifier())
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed POSTing Discord webhook: %w", err)
 	}
