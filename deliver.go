@@ -7,12 +7,12 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"net/smtp"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/AnthonyHewins/gotfy"
+	mail "github.com/xhit/go-simple-mail/v2"
 )
 
 type deliveryConfig struct {
@@ -50,6 +50,7 @@ type discordDeliveryConfig struct {
 
 const ntfyTimeout = 15 * time.Second
 const discordTimeout = 10 * time.Second
+const mailTimeout = 10 * time.Second
 
 func executeDeliveries(config *deliveryConfig, runOutput *runOutput) []error {
 	var deliveryErrors []error
@@ -69,27 +70,35 @@ func executeDeliveries(config *deliveryConfig, runOutput *runOutput) []error {
 }
 
 func executeMailDelivery(cfg *mailDeliveryConfig, runOutput *runOutput) error {
+	server := mail.NewSMTPClient()
+	server.Host = cfg.smtpHost
+	server.Port = cfg.smtpPort
+	server.Username = cfg.smtpUser
+	server.Password = cfg.smtpPassword
+	server.KeepAlive = false
+	server.ConnectTimeout = mailTimeout
+	server.SendTimeout = mailTimeout
+
+	smtpClient, err := server.Connect()
+	if err != nil {
+		return fmt.Errorf("failed to connect to SMTP server: %w", err)
+	}
+
+	email := mail.NewMSG()
+	email.SetFrom(cfg.mailFrom)
+	email.AddTo(cfg.mailTo)
+	email.SetSubject(fmt.Sprintf("%s %s", runOutput.emoj, runOutput.summaryLine))
+	email.AddHeader("X-Mailer", productIdentifier())
 	body := strings.ReplaceAll(runOutput.output, "\n", "\r\n")
 	if cfg.tabCharReplacement != "" {
 		body = strings.ReplaceAll(body, "\t", cfg.tabCharReplacement)
 	}
+	email.SetBody(mail.TextPlain, body)
+	if email.Error != nil {
+		return fmt.Errorf("failed to build email: %w", email.Error)
+	}
 
-	msg := []byte(fmt.Sprintf(
-		"From: %s\r\n"+
-			"To: %s\r\n"+
-			"Subject: %s\r\n"+
-			"X-Mailer: %s\r\n\r\n"+
-			"%s\r\n",
-		cfg.mailFrom, cfg.mailTo,
-		fmt.Sprintf("%s %s", runOutput.emoj, runOutput.summaryLine),
-		productIdentifier(),
-		body,
-	))
-	smtpAddr := fmt.Sprintf("%s:%d", cfg.smtpHost, cfg.smtpPort)
-	auth := smtp.PlainAuth("", cfg.smtpUser, cfg.smtpPassword, cfg.smtpHost)
-
-	err := smtp.SendMail(smtpAddr, auth, cfg.mailFrom, []string{cfg.mailTo}, msg)
-	if err != nil {
+	if err = email.Send(smtpClient); err != nil {
 		return fmt.Errorf("failed to send email to %s: %w", cfg.mailTo, err)
 	}
 	return nil
