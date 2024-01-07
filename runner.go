@@ -122,7 +122,7 @@ func runner(config *runConfig) *runOutput {
 				// runner does not consider this an error.
 				err = nil
 			} else {
-				cmdOutStr = fmt.Sprintf("Error: Failed to run '%s': %s", cmd.String(), err)
+				cmdOutStr = fmt.Sprintf("Error: Failed to run '%s': %s\n", cmd.String(), err)
 			}
 		}
 
