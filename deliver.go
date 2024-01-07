@@ -48,9 +48,12 @@ type discordDeliveryConfig struct {
 	logFileName       string
 }
 
-const ntfyTimeout = 10 * time.Second
-const discordTimeout = 10 * time.Second
-const mailTimeout = 10 * time.Second
+const (
+	successNotifyTimeout = 10 * time.Second
+	ntfyTimeout          = 10 * time.Second
+	discordTimeout       = 10 * time.Second
+	mailTimeout          = 10 * time.Second
+)
 
 func executeDeliveries(config *deliveryConfig, runOutput *runOutput) []error {
 	var deliveryErrors []error
@@ -164,6 +167,25 @@ func executeDiscordDelivery(cfg *discordDeliveryConfig, runOutput *runOutput) er
 			return fmt.Errorf("failed POSTing Discord webhook (%s) and reading response body: %w", resp.Status, err)
 		}
 		return fmt.Errorf("failed POSTing Discord webhook (%s): %s", resp.Status, respContent)
+	}
+	return nil
+}
+
+func deliverSuccessNotification(url string) error {
+	client := http.DefaultClient
+	client.Timeout = successNotifyTimeout
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to build GET request for '%s': %w", url, err)
+	}
+	req.Header.Set("User-Agent", productIdentifier())
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to GET '%s': %w", url, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode > 200 || resp.StatusCode < 299 {
+		return fmt.Errorf("failed to GET '%s' (%s)", url, resp.Status)
 	}
 	return nil
 }

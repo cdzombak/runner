@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 	"net/url"
 	"os"
 	"os/user"
@@ -63,8 +62,6 @@ const (
 	HideEnvVarsEnvVar   = "RUNNER_HIDE_ENV"
 	CensorEnvVarsEnvVar = "RUNNER_CENSOR_ENV"
 )
-
-const successNotifyTimeout = 10 * time.Second
 
 func usage() {
 	_, _ = fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] -- /path/to/program --program-args\n", filepath.Base(os.Args[0]))
@@ -438,16 +435,8 @@ func main() {
 	}
 
 	if runOut.succeeded && *successNotifyURL != "" {
-		client := http.DefaultClient
-		client.Timeout = successNotifyTimeout
-		resp, err := client.Get(*successNotifyURL)
-		if err != nil {
-			deliveryErrs = append(deliveryErrs, fmt.Errorf("failed to GET success notification URL '%s': %w", *successNotifyURL, err))
-		} else {
-			defer resp.Body.Close()
-			if resp.StatusCode > 200 || resp.StatusCode < 299 {
-				deliveryErrs = append(deliveryErrs, fmt.Errorf("failed to GET success notification URL '%s' (%s)", *successNotifyURL, resp.Status))
-			}
+		if err := deliverSuccessNotification(*successNotifyURL); err != nil {
+			deliveryErrs = append(deliveryErrs, fmt.Errorf("failed to call success notification URL: %w", err))
 		}
 	}
 
