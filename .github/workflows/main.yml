@@ -247,7 +247,7 @@ jobs:
           target_darwin_arm64: true
           target_linux_amd64: true
           target_linux_arm64: true
-          version: ${{ needs.meta.outputs.bin_version }}
+          version: v${{ needs.meta.outputs.bin_version }}
           install: 'bin.install "${{ needs.meta.outputs.bin_name }}"'
           test: 'assert_match("${{ needs.meta.outputs.bin_version }}", shell_output("#{bin}/${{ needs.meta.outputs.bin_name }} -version"))'
 
