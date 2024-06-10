@@ -251,7 +251,6 @@ jobs:
           install: 'bin.install "${{ needs.meta.outputs.bin_name }}"'
           test: 'assert_match("${{ needs.meta.outputs.bin_version }}", shell_output("#{bin}/${{ needs.meta.outputs.bin_name }} -version"))'
 
-
   ntfy:
     name: Ntfy
     if: ${{ !cancelled() }}

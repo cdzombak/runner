@@ -101,7 +101,7 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
   - Can also be set by the `RUNNER_LOG_DIR` environment variable; this flag overrides the environment variable.
 - `-print-if-match value`: Print/mail output if the given (**case-sensitive**) string appears in the program's output, even if it was a healthy exit. May be specified multiple times.
 - `-print-if-not-match value`: Print/mail output if the given (**case-sensitive**) string does not appear in the program's output, even if it was a healthy exit. May be specified multiple times.
-- `-print-stderr`: Print output to stderr instead of stdout (if this flag is not given, output is printed to stdout). 
+- `-print-stderr`: Print output to stderr instead of stdout (if this flag is not given, output is printed to stdout).
 - `-retries int`: If the command fails, retry it this many times. (default: `0`)
 - `-retry-delay int`: If the command fails, wait this many seconds before retrying. (default: `0`)
 - `timeout int`: Maximum number of seconds for the program's execution. If retries are allowed, each try may take this long. The timeout given does not include retry delay. (default: `0`, meaning "no timeout")
