@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AnthonyHewins/gotfy"
+	"github.com/cdzombak/gotfy"
 	mail "github.com/xhit/go-simple-mail/v2"
 )
 
@@ -108,18 +108,21 @@ func executeMailDelivery(cfg *mailDeliveryConfig, runOutput *runOutput) error {
 }
 
 func executeNtfyDelivery(cfg *ntfyDeliveryConfig, runOutput *runOutput) error {
-	ntfyPublisher, err := gotfy.NewPublisher(nil, cfg.ntfyServerURL, nil)
-	if err != nil {
-		return fmt.Errorf("failed to create ntfy publisher: %w", err)
-	}
-	ntfyPublisher.Headers.Set("user-agent", productIdentifier())
+	var ntfyAuth gotfy.Authorization
 	if cfg.ntfyAccessToken != "" {
-		ntfyPublisher.Headers.Set("authorization", fmt.Sprintf("Bearer %s", cfg.ntfyAccessToken))
+		ntfyAuth = gotfy.AccessToken(cfg.ntfyAccessToken)
 	}
+	ntfyPublisher := gotfy.NewPublisher(gotfy.PublisherOpts{
+		Server: cfg.ntfyServerURL,
+		Auth:   ntfyAuth,
+		Headers: http.Header{
+			"User-Agent": {productIdentifier()},
+		},
+	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), ntfyTimeout)
 	defer cancel()
-	_, err = ntfyPublisher.SendMessage(ctx, &gotfy.Message{
+	_, err := ntfyPublisher.Send(ctx, gotfy.Message{
 		Topic:    cfg.ntfyTopic,
 		Tags:     strings.Split(cfg.ntfyTags, ","),
 		Priority: gotfy.Priority(cfg.ntfyPriority),

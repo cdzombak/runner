@@ -1,11 +1,14 @@
 module runner
 
-go 1.15
+go 1.19
 
 require (
-	github.com/AnthonyHewins/gotfy v0.0.6
+	github.com/cdzombak/gotfy v0.0.0-20240610014552-d016c27f5d28
 	github.com/oraoto/go-pidfd v0.1.1
-	github.com/xhit/go-simple-mail/v2 v2.16.0 // indirect
+	github.com/xhit/go-simple-mail/v2 v2.16.0
 )
 
-replace github.com/AnthonyHewins/gotfy => github.com/cdzombak/gotfy v0.0.0-20231025000242-bc5cb9291587
+require (
+	github.com/go-test/deep v1.1.0 // indirect
+	github.com/toorop/go-dkim v0.0.0-20240103092955-90b7d1423f92 // indirect
+)
