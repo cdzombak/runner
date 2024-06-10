@@ -120,7 +120,7 @@ func runner(config *runConfig) *runOutput {
 			if errors.As(err, &exitError) {
 				// cmd started, but did not return a healthy exit code.
 				// runner does not consider this an error.
-				err = nil
+				err = nil //nolint:all
 			} else {
 				cmdOutStr = fmt.Sprintf("Error: Failed to run '%s': %s\n", cmd.String(), err)
 			}
