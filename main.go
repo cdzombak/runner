@@ -43,6 +43,13 @@ const (
 	DiscordWebhookEnvVar = "RUNNER_DISCORD_WEBHOOK"
 )
 
+// Environment variables supporting Slack delivery:
+const (
+	SlackWebhookEnvVar   = "RUNNER_SLACK_WEBHOOK"
+	SlackUsernameEnvVar  = "RUNNER_SLACK_USERNAME"
+	SlackIconEmojiEnvVar = "RUNNER_SLACK_ICON_EMOJI"
+)
+
 // Environment variables supporting success notification delivery:
 const (
 	SuccessNotifyEnvVar = "RUNNER_SUCCESS_NOTIFY"
@@ -156,6 +163,14 @@ func main() {
 	// Discord delivery flag:
 	discordHookURL := flag.String("discord-webhook", "", "If set, post to this Discord webhook if the program fails or its output would otherwise be printed per -healthy-exit/-print-if-[not]-match/-always-print. "+
 		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", DiscordWebhookEnvVar))
+
+	// Slack delivery flag:
+	slackWebhookURL := flag.String("slack-webhook", "", "If set, post to this Slack webhook if the program fails or its output would otherwise be printed per -healthy-exit/-print-if-[not]-match/-always-print. "+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", SlackWebhookEnvVar))
+	slackUsername := flag.String("slack-username", "", "If set, use this username when posting to Slack. "+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", SlackUsernameEnvVar))
+	slackIconEmoji := flag.String("slack-icon-emoji", "", "If set, use this emoji as the icon when posting to Slack. "+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", SlackIconEmojiEnvVar))
 
 	// Success notification delivery flag:
 	successNotifyURL := flag.String("success-notify", "", "If set, GET this URL if the program succeeds. This is useful in conjunction with e.g. Uptime Kuma's push monitors. "+
@@ -390,6 +405,27 @@ func main() {
 
 	if *successNotifyURL == "" {
 		*successNotifyURL = os.Getenv(SuccessNotifyEnvVar)
+	}
+
+	slackCfg := &slackDeliveryConfig{
+		slackWebhookURL: *slackWebhookURL,
+		slackUsername:   *slackUsername,
+		slackIconEmoji:  *slackIconEmoji,
+	}
+	if slackCfg.slackWebhookURL == "" {
+		slackCfg.slackWebhookURL = os.Getenv(SlackWebhookEnvVar)
+	}
+	if slackCfg.slackUsername == "" {
+		slackCfg.slackUsername = os.Getenv(SlackUsernameEnvVar)
+	}
+	if slackCfg.slackIconEmoji == "" {
+		slackCfg.slackIconEmoji = os.Getenv(SlackIconEmojiEnvVar)
+	}
+	if slackCfg.slackWebhookURL != "" {
+		if !strings.HasPrefix(strings.ToLower(slackCfg.slackWebhookURL), "http") {
+			slackCfg.slackWebhookURL = "https://" + slackCfg.slackWebhookURL
+		}
+		deliveryCfg.slack = slackCfg
 	}
 
 	logCfg := &logConfig{
