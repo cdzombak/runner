@@ -84,13 +84,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Run MegaLinter
-        uses: oxsecurity/megalinter@v7
+        uses: oxsecurity/megalinter@v7.13.0
         env:
           # See https://megalinter.io/configuration and .mega-linter.yml
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Archive MegaLinter artifacts
         if: ( !env.ACT && ( success() || failure() ) )
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: MegaLinter artifacts
           path: |
@@ -134,7 +134,7 @@ jobs:
           cp ./*.deb ./gh-release/
           find . -name '${{ needs.meta.outputs.bin_name }}-*' -executable -type f -maxdepth 1 -print0 | xargs -0 -I {} tar --transform='flags=r;s|.*|${{ needs.meta.outputs.bin_name }}|' -czvf ./gh-release/{}.tar.gz {}
       - name: Upload binaries & packages
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ needs.meta.outputs.bin_name }} Binary Artifacts
           path: out/gh-release/*
@@ -150,7 +150,7 @@ jobs:
       contents: write
     steps:
       - name: Download binaries & packages
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ needs.meta.outputs.bin_name }} Binary Artifacts
           path: out
@@ -158,7 +158,7 @@ jobs:
         working-directory: out
         run: ls -R
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2.2.1
         with:
           files: out/${{ needs.meta.outputs.bin_name }}-*
           prerelease: ${{ needs.meta.outputs.is_prerelease == 'true' }}
@@ -176,7 +176,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Update running major/minor version tags
-        uses: sersoft-gmbh/running-release-tags-action@v3
+        uses: sersoft-gmbh/running-release-tags-action@v3.0.0
         with:
           fail-on-non-semver-tag: true
           create-release: false
@@ -189,7 +189,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download binaries & packages
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ needs.meta.outputs.bin_name }} Binary Artifacts
           path: out
@@ -198,7 +198,7 @@ jobs:
         working-directory: out
 
       - name: Login to Tailscale
-        uses: tailscale/github-action@v2
+        uses: tailscale/github-action@v3
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
@@ -234,7 +234,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Release to ${{ needs.meta.outputs.brewtap_owner }}/${{ needs.meta.outputs.brewtap_name }} tap
-        uses: Justintime50/homebrew-releaser@v1
+        uses: Justintime50/homebrew-releaser@v2.0.0
         with:
           homebrew_owner: ${{ needs.meta.outputs.brewtap_owner }}
           homebrew_tap: homebrew-${{ needs.meta.outputs.brewtap_name }}
@@ -258,7 +258,7 @@ jobs:
     needs: [meta, lint, binaries, release, aptly, homebrew]
     steps:
       - name: Send success notification
-        uses: niniyas/ntfy-action@master
+        uses: niniyas/ntfy-action@v1.0.4
         if: ${{ !contains(needs.*.result, 'failure') && (needs.meta.outputs.is_release == 'true' || needs.meta.outputs.is_prerelease == 'true') }}
         with:
           url: "https://ntfy.cdzombak.net"
@@ -269,7 +269,7 @@ jobs:
           title: ${{ github.event.repository.name }} ${{ needs.meta.outputs.bin_version }} available
           details: ${{ github.event.repository.name }} version ${{ needs.meta.outputs.bin_version }} is now available.
       - name: Send failure notification
-        uses: niniyas/ntfy-action@master
+        uses: niniyas/ntfy-action@v1.0.4
         if: ${{ contains(needs.*.result, 'failure') }}
         with:
           url: "https://ntfy.cdzombak.net"
