@@ -3,7 +3,7 @@ module runner
 go 1.19
 
 require (
-	github.com/cdzombak/gotfy v0.0.0-20240610014552-d016c27f5d28
+	github.com/cdzombak/gotfy v1.1.0
 	github.com/oraoto/go-pidfd v0.1.1
 	github.com/xhit/go-simple-mail/v2 v2.16.0
 )
