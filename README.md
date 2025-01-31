@@ -9,6 +9,7 @@ If the program failed, or its output would otherwise be printed, `runner` can al
 - email the program's output, if provided with an SMTP server and credentials
 - send a notification via [ntfy](https://ntfy.sh)
 - send a notification to a Discord webhook
+- send a notification to a Slack webhook
 
 Output is optionally written to a log directory, regardless of program exit status.
 
@@ -24,7 +25,7 @@ The core `runner` logic (capturing and discarding program output) is useful when
 
 ### Containers
 
-`runner` 2+ is useful in various containerization applications, even as a container entrypoint. It can run a target program in the container, retry it if need be, capture its output, and then send the output via email, ntfy, or Discord. Email, ntfy, and Discord outputs can be configured by the image's end user via environment variables, requiring no build-time customization. Regardless of these output delivery options, it can always log the program's result to a file as well.
+`runner` 2+ is useful in various containerization applications, even as a container entrypoint. It can run a target program in the container, retry it if need be, capture its output, and then send the output via email, ntfy, Discord, or Slack. Email, ntfy, Discord, and Slack outputs can be configured by the image's end user via environment variables, requiring no build-time customization. Regardless of these output delivery options, it can always log the program's result to a file as well.
 
 It can even run the target program as a non-root user, and if `runner` is not the container's entrypoint, you can set environment variables like the following to redirect output to the root process's stdout/stderr:
 
@@ -155,6 +156,15 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
 
 - `-discord-webhook string`: If set, post to this Discord webhook if the program fails or its output would otherwise be printed per -healthy-exit/-print-if-[not]-match/-always-print.
   - Can also be set by the `RUNNER_DISCORD_WEBHOOK` environment variable; this flag overrides the environment variable.
+
+#### Slack options
+
+- `-slack-webhook string`: If set, post to this Slack webhook if the program fails or its output would otherwise be printed per -healthy-exit/-print-if-[not]-match/-always-print.
+  - Can also be set by the `RUNNER_SLACK_WEBHOOK` environment variable; this flag overrides the environment variable.
+- `-slack-username string`: If set, use this username for the Slack message.
+  - Can also be set by the `RUNNER_SLACK_USERNAME` environment variable; this flag overrides the environment variable.
+- `-slack-icon-emoji string`: If set, use this emoji for the Slack message. Examples: `:floppy_disk:`, `:octocat:`.
+  - Can also be set by the `RUNNER_SLACK_ICON_EMOJI` environment variable; this flag overrides the environment variable.
 
 ### Success notification options (for e.g. [Uptime Kuma](https://github.com/louislam/uptime-kuma) Push monitors)
 

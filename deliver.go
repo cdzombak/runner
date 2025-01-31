@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -19,6 +20,7 @@ type deliveryConfig struct {
 	mail    *mailDeliveryConfig
 	ntfy    *ntfyDeliveryConfig
 	discord *discordDeliveryConfig
+	slack   *slackDeliveryConfig
 }
 
 // mailDeliveryConfig, if provided, is assumed to be complete, valid, and internally consistent.
@@ -48,6 +50,13 @@ type discordDeliveryConfig struct {
 	logFileName       string
 }
 
+// slackDeliveryConfig, if provided, is assumed to be complete, valid, and internally consistent.
+type slackDeliveryConfig struct {
+	slackWebhookURL string
+	slackUsername   string
+	slackIconEmoji  string
+}
+
 const (
 	successNotifyTimeout = 10 * time.Second
 	ntfyTimeout          = 10 * time.Second
@@ -68,6 +77,10 @@ func executeDeliveries(config *deliveryConfig, runOutput *runOutput) []error {
 	if config.discord != nil {
 		deliveryErrors = extendErrSlice(deliveryErrors,
 			executeDiscordDelivery(config.discord, runOutput))
+	}
+	if config.slack != nil {
+		deliveryErrors = extendErrSlice(deliveryErrors,
+			executeSlackDelivery(config.slack, runOutput))
 	}
 	return deliveryErrors
 }
@@ -177,6 +190,45 @@ func executeDiscordDelivery(cfg *discordDeliveryConfig, runOutput *runOutput) er
 			return fmt.Errorf("failed POSTing Discord webhook (%s) and reading response body: %w", resp.Status, err)
 		}
 		return fmt.Errorf("failed POSTing Discord webhook (%s): %s", resp.Status, respContent)
+	}
+	return nil
+}
+
+func executeSlackDelivery(cfg *slackDeliveryConfig, runOutput *runOutput) error {
+	client := http.DefaultClient
+	client.Timeout = discordTimeout
+
+	payload := map[string]string{
+		"text": fmt.Sprintf("%s %s", runOutput.emoj, runOutput.summaryLine),
+	}
+	if cfg.slackUsername != "" {
+		payload["username"] = cfg.slackUsername
+	}
+	if cfg.slackIconEmoji != "" {
+		payload["icon_emoji"] = cfg.slackIconEmoji
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal Slack payload: %w", err)
+	}
+	req, err := http.NewRequest(http.MethodPost, cfg.slackWebhookURL, bytes.NewReader(payloadBytes))
+	if err != nil {
+		return fmt.Errorf("failed to build Slack webhook HTTP request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", productIdentifier())
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed POSTing Slack webhook: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		respContent, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed POSTing Slack webhook (%s) and reading response body: %w", resp.Status, err)
+		}
+		return fmt.Errorf("failed POSTing Slack webhook (%s): %s", resp.Status, respContent)
 	}
 	return nil
 }
