@@ -1,3 +1,5 @@
+![runner banner image](img/runner-banner.jpg)
+
 # `runner`: a lightweight wrapper for cron jobs and containers
 
 `runner` runs a program, capturing its output (from both standard output and standard error) and printing it to standard output only if the program fails.
