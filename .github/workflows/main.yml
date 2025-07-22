@@ -73,29 +73,25 @@ jobs:
       is_running_version_tag_update: ${{ steps.running_version_tag.outputs.is_running_version_tag_update }}
 
   lint:
-    name: Lint
+    name: golangci-lint
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      checks: write
-      issues: write
-      pull-requests: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Run MegaLinter
-        uses: oxsecurity/megalinter@v7.13.0
-        env:
-          # See https://megalinter.io/configuration and .mega-linter.yml
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Archive MegaLinter artifacts
-        if: ( !env.ACT && ( success() || failure() ) )
-        uses: actions/upload-artifact@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          name: MegaLinter artifacts
-          path: |
-            megalinter-reports
-            mega-linter.log
+          go-version-file: 'go.mod'
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: actionlint
+        uses: raven-actions/actionlint@v2
 
   binaries:
     name: Binaries & Debian Packages
@@ -108,7 +104,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: stable
       - name: Go version
