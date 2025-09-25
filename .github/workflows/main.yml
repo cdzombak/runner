@@ -52,7 +52,7 @@ jobs:
       aptly_publish_prefix: s3:dist.cdzombak.net:deb_oss
       brewtap_owner: ${{ github.repository_owner }}
       brewtap_name: oss
-      brewtap_formula_dir: formula
+      brewtap_formula_dir: Formula
       is_prerelease: >-
         ${{
           steps.running_version_tag.outputs.is_running_version_tag_update != 'true' &&
