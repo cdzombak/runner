@@ -476,6 +476,12 @@ func main() {
 		}
 	}
 
+	if len(deliveryErrs) > 0 {
+		for _, deliveryErr := range deliveryErrs {
+			_, _ = fmt.Fprintf(os.Stderr, "runner delivery error: %s\n", deliveryErr)
+		}
+	}
+
 	err = writeLogs(logCfg, runOut, deliveryErrs)
 	if err != nil {
 		log.Fatalf("Failed to write logs: %s", err)
