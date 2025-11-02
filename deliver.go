@@ -97,11 +97,13 @@ func executeMailDelivery(cfg *mailDeliveryConfig, runOutput *runOutput) error {
 
 	// TODO(cdzombak): allow configuring mail encryption type
 	// https://github.com/cdzombak/runner/issues/11
-	server.Encryption = mail.EncryptionNone
-	if cfg.smtpPort == 465 {
+	switch cfg.smtpPort {
+	case 465:
 		server.Encryption = mail.EncryptionSSLTLS
-	} else if cfg.smtpPort == 587 {
+	case 587:
 		server.Encryption = mail.EncryptionSTARTTLS
+	default:
+		server.Encryption = mail.EncryptionNone
 	}
 
 	smtpClient, err := server.Connect()
