@@ -257,7 +257,7 @@ func deliverSuccessNotification(url string) error {
 		return fmt.Errorf("failed to GET '%s': %w", url, err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode > 200 || resp.StatusCode < 299 {
+	if resp.StatusCode > 299 || resp.StatusCode < 200 {
 		return fmt.Errorf("failed to GET '%s' (%s)", url, resp.Status)
 	}
 	return nil
