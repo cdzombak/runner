@@ -258,6 +258,15 @@ func deliverSuccessNotification(url string) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode > 299 || resp.StatusCode < 200 {
+		// special case: don't send failures for intermittent Uptime Kuma bug
+		// https://github.com/louislam/uptime-kuma/issues/5357 :
+		if resp.StatusCode == 404 {
+			body, _ := io.ReadAll(resp.Body)
+			if strings.Contains(string(body), "ok\":false") && strings.Contains(string(body), "Duplicate entry") {
+				return nil
+			}
+		}
+
 		return fmt.Errorf("failed to GET '%s' (%s)", url, resp.Status)
 	}
 	return nil
