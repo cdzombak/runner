@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/url"
 	"os"
 	"os/user"
@@ -478,6 +480,11 @@ func main() {
 
 	if len(deliveryErrs) > 0 {
 		for _, deliveryErr := range deliveryErrs {
+			// silence delivery errors due to likely-transient network issues:
+			var netErr net.Error
+			if errors.As(deliveryErr, &netErr) {
+				continue
+			}
 			_, _ = fmt.Fprintf(os.Stderr, "runner delivery error: %s\n", deliveryErr)
 		}
 	}
