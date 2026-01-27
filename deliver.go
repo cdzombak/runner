@@ -262,8 +262,14 @@ func deliverSuccessNotification(url string) error {
 		// https://github.com/louislam/uptime-kuma/issues/5357 :
 		if resp.StatusCode == 404 {
 			body, _ := io.ReadAll(resp.Body)
-			if strings.Contains(string(body), "ok\":false") && strings.Contains(string(body), "Duplicate entry") {
-				return nil
+			var parsed struct {
+				Ok  bool   `json:"ok"`
+				Msg string `json:"msg"`
+			}
+			if err := json.Unmarshal(body, &parsed); err == nil {
+				if !parsed.Ok && (strings.Contains(parsed.Msg, "Duplicate entry") || strings.Contains(parsed.Msg, "UNIQUE constraint failed")) {
+					return nil
+				}
 			}
 		}
 
