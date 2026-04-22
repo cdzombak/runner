@@ -136,6 +136,8 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
   - Can also be set by the `RUNNER_SMTP_PASS` environment variable; this flag overrides the environment variable.
 - `-smtp-port int`: SMTP server port.
   - Can also be set by the `RUNNER_SMTP_PORT` environment variable; this flag overrides the environment variable. (default: 25)
+- `-smtp-encryption string`: SMTP encryption type. Valid values are `auto`, `none`, `ssltls`, and `starttls`. When `auto`, encryption is selected based on the SMTP port (465=SSL/TLS, 587=STARTTLS, otherwise none).
+  - Can also be set by the `RUNNER_SMTP_ENCRYPTION` environment variable; this flag overrides the environment variable. (default: `auto`)
 - `-smtp-user string`: Username for SMTP authentication.
   - Can also be set by the `RUNNER_SMTP_USER` environment variable; this flag overrides the environment variable.
 

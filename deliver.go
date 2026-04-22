@@ -31,6 +31,7 @@ type mailDeliveryConfig struct {
 	smtpPassword       string
 	smtpHost           string
 	smtpPort           int
+	encryption         string
 	tabCharReplacement string
 }
 
@@ -95,15 +96,24 @@ func executeMailDelivery(cfg *mailDeliveryConfig, runOutput *runOutput) error {
 	server.ConnectTimeout = mailTimeout
 	server.SendTimeout = mailTimeout
 
-	// TODO(cdzombak): allow configuring mail encryption type
-	// https://github.com/cdzombak/runner/issues/11
-	switch cfg.smtpPort {
-	case 465:
-		server.Encryption = mail.EncryptionSSLTLS
-	case 587:
-		server.Encryption = mail.EncryptionSTARTTLS
-	default:
-		server.Encryption = mail.EncryptionNone
+	if cfg.encryption != "auto" {
+		switch cfg.encryption {
+		case "none":
+			server.Encryption = mail.EncryptionNone
+		case "ssltls":
+			server.Encryption = mail.EncryptionSSLTLS
+		case "starttls":
+			server.Encryption = mail.EncryptionSTARTTLS
+		}
+	} else {
+		switch cfg.smtpPort {
+		case 465:
+			server.Encryption = mail.EncryptionSSLTLS
+		case 587:
+			server.Encryption = mail.EncryptionSTARTTLS
+		default:
+			server.Encryption = mail.EncryptionNone
+		}
 	}
 
 	smtpClient, err := server.Connect()

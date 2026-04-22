@@ -21,13 +21,14 @@ var version = "<dev>"
 
 // Environment variables supporting email delivery:
 const (
-	MailToEnvVar      = "RUNNER_MAILTO"
-	MailFromEnvVar    = "RUNNER_MAIL_FROM"
-	SMTPUserEnvVar    = "RUNNER_SMTP_USER"
-	SMTPPassEnvVar    = "RUNNER_SMTP_PASS"
-	SMTPHostEnvVar    = "RUNNER_SMTP_HOST"
-	SMTPPortEnvVar    = "RUNNER_SMTP_PORT"
-	MailTabCharEnvVar = "RUNNER_MAIL_TAB_CHAR"
+	MailToEnvVar         = "RUNNER_MAILTO"
+	MailFromEnvVar       = "RUNNER_MAIL_FROM"
+	SMTPUserEnvVar       = "RUNNER_SMTP_USER"
+	SMTPPassEnvVar       = "RUNNER_SMTP_PASS"
+	SMTPHostEnvVar       = "RUNNER_SMTP_HOST"
+	SMTPPortEnvVar       = "RUNNER_SMTP_PORT"
+	SMTPEncryptionEnvVar = "RUNNER_SMTP_ENCRYPTION"
+	MailTabCharEnvVar    = "RUNNER_MAIL_TAB_CHAR"
 )
 
 // Environment variables supporting ntfy delivery:
@@ -145,6 +146,9 @@ func main() {
 		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", SMTPHostEnvVar))
 	smtpPort := flag.Int("smtp-port", 25, "SMTP server port. "+
 		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", SMTPPortEnvVar))
+	smtpEncryption := flag.String("smtp-encryption", "auto", "SMTP encryption type: auto, none, ssltls, starttls. "+
+		"When auto, encryption is selected based on the SMTP port (465=SSL/TLS, 587=STARTTLS, otherwise none). "+
+		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", SMTPEncryptionEnvVar))
 	mailTabCharReplacement := flag.String("mail-tab-char", "", "Replace tab characters in emailed output by this string. "+
 		fmt.Sprintf("Can also be set by the %s environment variable; this flag overrides the environment variable.", MailTabCharEnvVar))
 
@@ -286,6 +290,7 @@ func main() {
 		smtpPassword:       *smtpPass,
 		smtpHost:           *smtpHost,
 		smtpPort:           *smtpPort,
+		encryption:         *smtpEncryption,
 		tabCharReplacement: *mailTabCharReplacement,
 	}
 	if mailCfg.mailTo == "" {
@@ -309,6 +314,9 @@ func main() {
 	if mailCfg.tabCharReplacement == "" {
 		mailCfg.tabCharReplacement = os.Getenv(MailTabCharEnvVar)
 	}
+	if mailCfg.encryption == "auto" && os.Getenv(SMTPEncryptionEnvVar) != "" && !WasFlagGiven("smtp-encryption") {
+		mailCfg.encryption = os.Getenv(SMTPEncryptionEnvVar)
+	}
 	if os.Getenv(SMTPPortEnvVar) != "" && !WasFlagGiven("smtp-port") {
 		smtpPortStr := os.Getenv(SMTPPortEnvVar)
 		mailCfg.smtpPort, err = strconv.Atoi(smtpPortStr)
@@ -324,6 +332,16 @@ func main() {
 				runCfg.outputConfig.addSetupWarning(fmt.Sprintf(
 					"Invalid SMTP port %d given; using default of 25 instead", mailCfg.smtpPort))
 				mailCfg.smtpPort = 25
+			}
+
+			encLower := strings.ToLower(mailCfg.encryption)
+			switch encLower {
+			case "auto", "none", "ssltls", "starttls":
+				mailCfg.encryption = encLower
+			default:
+				runCfg.outputConfig.addSetupWarning(fmt.Sprintf(
+					"Invalid SMTP encryption type '%s' given; using 'auto' instead", mailCfg.encryption))
+				mailCfg.encryption = "auto"
 			}
 		} else {
 			runCfg.outputConfig.addSetupWarning(fmt.Sprintf(
