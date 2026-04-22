@@ -77,10 +77,10 @@ func runner(config *runConfig) *runOutput {
 			if config.retryDelay > 0 {
 				time.Sleep(config.retryDelay)
 			}
-			programOutput.WriteString(fmt.Sprintf(
+			fmt.Fprintf(&programOutput,
 				"\n- Retrying after %.0f seconds -\n\n",
 				config.retryDelay.Round(time.Second).Seconds(),
-			))
+			)
 		}
 		triesRemaining--
 
@@ -198,12 +198,12 @@ func runner(config *runConfig) *runOutput {
 	output.WriteString(jobSummaryOutput)
 	if config.runAsUser != nil {
 		if config.runAsUser.runAsUserName != "" {
-			output.WriteString(fmt.Sprintf("Run as user %s:\n", config.runAsUser.runAsUserName))
+			fmt.Fprintf(&output, "Run as user %s:\n", config.runAsUser.runAsUserName)
 		} else {
 			output.WriteString("Run as:\n")
 		}
-		output.WriteString(fmt.Sprintf("\tUID: %d\n", config.runAsUser.runAsUID))
-		output.WriteString(fmt.Sprintf("\tGID: %d\n\n", config.runAsUser.runAsGID))
+		fmt.Fprintf(&output, "\tUID: %d\n", config.runAsUser.runAsUID)
+		fmt.Fprintf(&output, "\tGID: %d\n\n", config.runAsUser.runAsGID)
 	}
 	if !config.outputConfig.hideEnv {
 		output.WriteString("Environment:\n")
@@ -213,7 +213,7 @@ func runner(config *runConfig) *runOutput {
 			if shouldHideEnvVar(envVarName) {
 				continue
 			}
-			output.WriteString(fmt.Sprintf("\t%s=%s\n", envVarName, censoredEnvVarValue(envVarName, envVarPair[1])))
+			fmt.Fprintf(&output, "\t%s=%s\n", envVarName, censoredEnvVarValue(envVarName, envVarPair[1]))
 		}
 		output.WriteRune('\n')
 	}
