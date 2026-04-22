@@ -91,7 +91,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: actionlint
-        uses: raven-actions/actionlint@v2.0.1
+        uses: raven-actions/actionlint@v2.1.2
 
   binaries:
     name: Binaries & Debian Packages
