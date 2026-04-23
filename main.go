@@ -245,7 +245,7 @@ func main() {
 			}
 			gid, err := strconv.ParseInt(u.Gid, 10, 32)
 			if err != nil {
-				log.Fatalf("Failed to parse UID %s as integer: %s", u.Uid, err)
+				log.Fatalf("Failed to parse GID %s as integer: %s", u.Gid, err)
 			}
 			*asUID = int(uid)
 			*asGID = int(gid)
