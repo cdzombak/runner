@@ -260,8 +260,8 @@ func main() {
 			currentGID := os.Getgid()
 
 			runAsConfig = &runAsUserConfig{
-				runAsUID: *asUID,
-				runAsGID: *asGID,
+				runAsUID: currentUID,
+				runAsGID: currentGID,
 				sysProcAttr: &syscall.SysProcAttr{
 					Credential: &syscall.Credential{
 						Uid: uint32(currentUID),
@@ -271,6 +271,7 @@ func main() {
 				runAsUserName: *asUser,
 			}
 			if *asUID != -1 {
+				runAsConfig.runAsUID = *asUID
 				runAsConfig.sysProcAttr.Credential.Uid = uint32(*asUID)
 
 				u, err := user.LookupId(strconv.Itoa(*asUID))
@@ -283,6 +284,7 @@ func main() {
 				}
 			}
 			if *asGID != -1 {
+				runAsConfig.runAsGID = *asGID
 				runAsConfig.sysProcAttr.Credential.Gid = uint32(*asGID)
 			}
 		}
