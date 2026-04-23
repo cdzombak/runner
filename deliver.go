@@ -62,6 +62,7 @@ const (
 	successNotifyTimeout = 10 * time.Second
 	ntfyTimeout          = 10 * time.Second
 	discordTimeout       = 10 * time.Second
+	slackTimeout         = 10 * time.Second
 	mailTimeout          = 10 * time.Second
 )
 
@@ -217,7 +218,7 @@ func executeDiscordDelivery(cfg *discordDeliveryConfig, runOutput *runOutput) er
 
 func executeSlackDelivery(cfg *slackDeliveryConfig, runOutput *runOutput) error {
 	client := http.DefaultClient
-	client.Timeout = discordTimeout
+	client.Timeout = slackTimeout
 
 	payload := map[string]string{
 		"text": fmt.Sprintf("%s %s", runOutput.emoj, runOutput.summaryLine),
