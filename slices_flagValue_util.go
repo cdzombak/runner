@@ -46,16 +46,19 @@ func (s *StringSlice) Set(value string) error {
 
 func ellipticalTruncate(text string, maxLen int) string {
 	// https://stackoverflow.com/questions/59955085/how-can-i-elliptically-truncate-text-in-golang
-	lastSpaceIx := maxLen
-	curLen := 0
+	lastSpaceByteIx := -1
+	runeCount := 0
 	for i, r := range text {
+		if runeCount >= maxLen {
+			if lastSpaceByteIx >= 0 {
+				return text[:lastSpaceByteIx] + "…"
+			}
+			return text[:i] + "…"
+		}
 		if unicode.IsSpace(r) {
-			lastSpaceIx = i
+			lastSpaceByteIx = i
 		}
-		curLen++
-		if curLen > maxLen {
-			return text[:lastSpaceIx] + "…"
-		}
+		runeCount++
 	}
 	return text
 }
