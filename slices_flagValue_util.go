@@ -20,10 +20,9 @@ func (i *IntSlice) String() string {
 func (i *IntSlice) Set(value string) error {
 	tmp, err := strconv.Atoi(value)
 	if err != nil {
-		*i = append(*i, -1)
-	} else {
-		*i = append(*i, tmp)
+		return fmt.Errorf("invalid integer %q: %w", value, err)
 	}
+	*i = append(*i, tmp)
 	return nil
 }
 
