@@ -261,18 +261,18 @@ func main() {
 			}
 			if *asUID != -1 {
 				runAsConfig.sysProcAttr.Credential.Uid = uint32(*asUID)
+
+				u, err := user.LookupId(strconv.Itoa(*asUID))
+				if err == nil && u != nil {
+					runAsConfig.userHome = u.HomeDir
+				} else if err != nil {
+					runCfg.outputConfig.addSetupWarning(fmt.Sprintf("cannot find homedir for UID %d (%s); HOME will not be changed", *asUID, err))
+				} else {
+					runCfg.outputConfig.addSetupWarning(fmt.Sprintf("cannot find homedir for UID %d; HOME will not be changed", *asUID))
+				}
 			}
 			if *asGID != -1 {
 				runAsConfig.sysProcAttr.Credential.Gid = uint32(*asGID)
-			}
-
-			u, err := user.LookupId(strconv.Itoa(*asUID))
-			if err != nil && u != nil {
-				runAsConfig.userHome = u.HomeDir
-			} else if err != nil {
-				runCfg.outputConfig.addSetupWarning(fmt.Sprintf("cannot find homedir for UID %d (%s); HOME will not be changed", *asUID, err))
-			} else {
-				runCfg.outputConfig.addSetupWarning(fmt.Sprintf("cannot find homedir for UID %d; HOME will not be changed", *asUID))
 			}
 		}
 	}
