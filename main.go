@@ -251,11 +251,17 @@ func main() {
 			*asGID = int(gid)
 		}
 		if *asUID != -1 || *asGID != -1 {
+			currentUID := os.Getuid()
+			currentGID := os.Getgid()
+
 			runAsConfig = &runAsUserConfig{
 				runAsUID: *asUID,
 				runAsGID: *asGID,
 				sysProcAttr: &syscall.SysProcAttr{
-					Credential: &syscall.Credential{},
+					Credential: &syscall.Credential{
+						Uid: uint32(currentUID),
+						Gid: uint32(currentGID),
+					},
 				},
 				runAsUserName: *asUser,
 			}
