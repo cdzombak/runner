@@ -10,8 +10,8 @@ If the program failed, or its output would otherwise be printed, `runner` can al
 
 - email the program's output, if provided with an SMTP server and credentials
 - send a notification via [ntfy](https://ntfy.sh)
-- send a notification to a Discord webhook
-- send a notification to a Slack webhook
+- send a notification to a Discord webhook, with the program output attached as a log file
+- send a summary notification to a Slack webhook
 
 Output is optionally written to a log directory, regardless of program exit status.
 
@@ -27,7 +27,7 @@ The core `runner` logic (capturing and discarding program output) is useful when
 
 ### Containers
 
-`runner` 2+ is useful in various containerization applications, even as a container entrypoint. It can run a target program in the container, retry it if need be, capture its output, and then send the output via email, ntfy, Discord, or Slack. Email, ntfy, Discord, and Slack outputs can be configured by the image's end user via environment variables, requiring no build-time customization. Regardless of these output delivery options, it can always log the program's result to a file as well.
+`runner` 2+ is useful in various containerization applications, even as a container entrypoint. It can run a target program in the container, retry it if need be, capture its output, and then send the output via email, ntfy, or Discord. It can also send a summary notification to Slack. Email, ntfy, Discord, and Slack outputs can be configured by the image's end user via environment variables, requiring no build-time customization. Regardless of these output delivery options, it can always log the program's result to a file as well.
 
 It can even run the target program as a non-root user, and if `runner` is not the container's entrypoint, you can set environment variables like the following to redirect output to the root process's stdout/stderr:
 
@@ -70,7 +70,7 @@ Pre-built binaries for Linux and macOS on various architectures are downloadable
 
 ### Build and install locally
 
-**Requirements:** Go >= 1.15.
+**Requirements:** Go >= 1.19.
 
 `make build` will build `runner` for your current OS/architecture. Copy the resulting binary from `./out/runner` to wherever makes sense for your deployment, and adjust its owner as necessary:
 
@@ -102,19 +102,21 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
 - `-job-name string`: Job name used in failure notifications and log file name. (default: program name, without path)
 - `-log-dir string`: The directory to write run logs to.
   - Can also be set by the `RUNNER_LOG_DIR` environment variable; this flag overrides the environment variable.
-- `-print-if-match value`: Print/mail output if the given (**case-sensitive**) string appears in the program's output, even if it was a healthy exit. May be specified multiple times.
-- `-print-if-not-match value`: Print/mail output if the given (**case-sensitive**) string does not appear in the program's output, even if it was a healthy exit. May be specified multiple times.
+- `-print-if-match value`: Print/mail output if the given (**case-sensitive**) string appears in the program's output, even if it was a healthy exit. May be specified multiple times. With retries enabled, only the final successful attempt can trigger this condition; failed attempts still produce output if all retries fail.
+- `-print-if-not-match value`: Print/mail output if the given (**case-sensitive**) string does not appear in the program's output, even if it was a healthy exit. May be specified multiple times. With retries enabled, only the final successful attempt can trigger this condition; failed attempts still produce output if all retries fail.
 - `-print-stderr`: Print output to stderr instead of stdout (if this flag is not given, output is printed to stdout).
 - `-retries int`: If the command fails, retry it this many times. (default: `0`)
 - `-retry-delay int`: If the command fails, wait this many seconds before retrying. (default: `0`)
-- `timeout int`: Maximum number of seconds for the program's execution. If retries are allowed, each try may take this long. The timeout given does not include retry delay. (default: `0`, meaning "no timeout")
+- `-timeout int`: Maximum number of seconds for the program's execution. If retries are allowed, each try may take this long. The timeout given does not include retry delay. (default: `0`, meaning "no timeout")
 - `-version`: Print version and exit.
 - `-work-dir string`: Set the working directory for the program.
 
 #### Hiding sensitive environment variables
 
-- `RUNNER_CENSOR_ENV` (environment variable only): Colon-separated list of environment variables whose values will be censored in output. `RUNNER_SMTP_PASS` and `RUNNER_NTFY_ACCESS_TOKEN` are always censored.
-- `RUNNER_HIDE_ENV` (environment variable only): Colon-separated list of environment variables which will be entirely omitted from output.
+- `RUNNER_CENSOR_ENV` (environment variable only): Colon-separated list of environment variables whose values will be censored in runner's rendered `Environment:` section. `RUNNER_SMTP_PASS` and `RUNNER_NTFY_ACCESS_TOKEN` are always censored.
+- `RUNNER_HIDE_ENV` (environment variable only): Colon-separated list of environment variables which will be entirely omitted from runner's rendered `Environment:` section.
+
+These settings do not redact values printed by the child program itself.
 
 #### Run as another user
 
@@ -158,12 +160,12 @@ If you plan to use the `RUNNER_OUTFD_PID` and `RUNNER_OUTFD_STD[OUT|ERR]` variab
 
 #### Discord options
 
-- `-discord-webhook string`: If set, post to this Discord webhook if the program fails or its output would otherwise be printed per -healthy-exit/-print-if-[not]-match/-always-print.
+- `-discord-webhook string`: If set, post to this Discord webhook if the program fails or its output would otherwise be printed per -healthy-exit/-print-if-[not]-match/-always-print. The Discord message contains a summary and attaches the full output as a log file.
   - Can also be set by the `RUNNER_DISCORD_WEBHOOK` environment variable; this flag overrides the environment variable.
 
 #### Slack options
 
-- `-slack-webhook string`: If set, post to this Slack webhook if the program fails or its output would otherwise be printed per -healthy-exit/-print-if-[not]-match/-always-print.
+- `-slack-webhook string`: If set, post to this Slack webhook if the program fails or its output would otherwise be printed per -healthy-exit/-print-if-[not]-match/-always-print. Slack messages contain a summary only, not the full program output.
   - Can also be set by the `RUNNER_SLACK_WEBHOOK` environment variable; this flag overrides the environment variable.
 - `-slack-username string`: If set, use this username for the Slack message.
   - Can also be set by the `RUNNER_SLACK_USERNAME` environment variable; this flag overrides the environment variable.
@@ -180,16 +182,17 @@ This heartbeat-style notification is useful if you want to have Uptime Kuma or a
 ### Sample Output
 
 ```text
-[myhostname] Success running exampledatejob
+[myhostname] Succeeded running exampledatejob
+Working directory: /home/ubuntu
 Command: /bin/date
 Exit code: 0
-Working directory: /home/ubuntu
 
 Duration: 3.794033ms
-Start time: 2020-05-27 09:17:59 -0400
-End time: 2020-05-27 09:17:59 -0400
+Start time: 2020-05-27 09:17:59.123 -0400
+End time: 2020-05-27 09:17:59.127 -0400
+Retries allowed: 0
 
---- Program output follows: ---
+--- Program Output ---
 
 Wed May 27 09:17:59 EDT 2020
 ```
