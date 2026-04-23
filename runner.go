@@ -72,6 +72,7 @@ func runner(config *runConfig) *runOutput {
 	exitCode := -1
 
 	for triesRemaining > 0 {
+		exitCode = -1
 		isRetry := config.retries > 0 && triesRemaining != 1+config.retries
 		if isRetry {
 			if config.retryDelay > 0 {
