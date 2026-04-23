@@ -385,9 +385,7 @@ func main() {
 		}
 	}
 	if *ntfyServer != "" {
-		if !strings.HasPrefix(strings.ToLower(*ntfyServer), "http") {
-			*ntfyServer = "https://" + *ntfyServer
-		}
+		*ntfyServer = ensureHTTPScheme(*ntfyServer)
 		ntfyCfg.ntfyServerURL, err = url.Parse(*ntfyServer)
 		if err != nil {
 			log.Fatalf("Failed to parse the given ntfy server URL ('%s'): %s", *ntfyServer, err)
@@ -417,9 +415,7 @@ func main() {
 		discordCfg.discordWebhookURL = os.Getenv(DiscordWebhookEnvVar)
 	}
 	if discordCfg.discordWebhookURL != "" {
-		if !strings.HasPrefix(strings.ToLower(discordCfg.discordWebhookURL), "http") {
-			discordCfg.discordWebhookURL = "https://" + discordCfg.discordWebhookURL
-		}
+		discordCfg.discordWebhookURL = ensureHTTPScheme(discordCfg.discordWebhookURL)
 		deliveryCfg.discord = discordCfg
 	}
 
@@ -442,9 +438,7 @@ func main() {
 		slackCfg.slackIconEmoji = os.Getenv(SlackIconEmojiEnvVar)
 	}
 	if slackCfg.slackWebhookURL != "" {
-		if !strings.HasPrefix(strings.ToLower(slackCfg.slackWebhookURL), "http") {
-			slackCfg.slackWebhookURL = "https://" + slackCfg.slackWebhookURL
-		}
+		slackCfg.slackWebhookURL = ensureHTTPScheme(slackCfg.slackWebhookURL)
 		deliveryCfg.slack = slackCfg
 	}
 
