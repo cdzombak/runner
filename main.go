@@ -221,6 +221,11 @@ func main() {
 	if len(runCfg.healthyExitCodes) == 0 {
 		runCfg.healthyExitCodes = []int{0}
 	}
+	if runCfg.retries < 0 {
+		runCfg.outputConfig.addSetupWarning(fmt.Sprintf(
+			"Invalid retries value %d given; using default of 0 instead", runCfg.retries))
+		runCfg.retries = 0
+	}
 	if *retryDelayInt > 0 {
 		runCfg.retryDelay = time.Duration(*retryDelayInt) * time.Second
 	}
