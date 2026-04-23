@@ -191,8 +191,7 @@ func executeDiscordDelivery(cfg *discordDeliveryConfig, runOutput *runOutput) er
 		return fmt.Errorf("failed building Discord webhook body (.Close): %w", err)
 	}
 
-	client := http.DefaultClient
-	client.Timeout = discordTimeout
+	client := &http.Client{Timeout: discordTimeout}
 
 	req, err := http.NewRequest(http.MethodPost, cfg.discordWebhookURL, webhookBody)
 	if err != nil {
@@ -217,8 +216,7 @@ func executeDiscordDelivery(cfg *discordDeliveryConfig, runOutput *runOutput) er
 }
 
 func executeSlackDelivery(cfg *slackDeliveryConfig, runOutput *runOutput) error {
-	client := http.DefaultClient
-	client.Timeout = slackTimeout
+	client := &http.Client{Timeout: slackTimeout}
 
 	payload := map[string]string{
 		"text": fmt.Sprintf("%s %s", runOutput.emoj, runOutput.summaryLine),
@@ -256,8 +254,7 @@ func executeSlackDelivery(cfg *slackDeliveryConfig, runOutput *runOutput) error 
 }
 
 func deliverSuccessNotification(url string) error {
-	client := http.DefaultClient
-	client.Timeout = successNotifyTimeout
+	client := &http.Client{Timeout: successNotifyTimeout}
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to build GET request for '%s': %w", url, err)
