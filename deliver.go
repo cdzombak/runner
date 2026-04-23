@@ -155,11 +155,16 @@ func executeNtfyDelivery(cfg *ntfyDeliveryConfig, runOutput *runOutput) error {
 		},
 	})
 
+	var tags []string
+	if cfg.ntfyTags != "" {
+		tags = strings.Split(cfg.ntfyTags, ",")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), ntfyTimeout)
 	defer cancel()
 	_, err := ntfyPublisher.Send(ctx, gotfy.Message{
 		Topic:    cfg.ntfyTopic,
-		Tags:     strings.Split(cfg.ntfyTags, ","),
+		Tags:     tags,
 		Priority: gotfy.Priority(cfg.ntfyPriority),
 		Email:    cfg.ntfyEmail,
 		Title:    runOutput.summaryLine,
