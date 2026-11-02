@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/cdzombak/gotfy v1.1.0
 	github.com/oraoto/go-pidfd v0.1.1
-	github.com/xhit/go-simple-mail/v2 v2.16.0
+	github.com/xhit/go-simple-mail/v2 v2.17.0
 )
 
 require (
